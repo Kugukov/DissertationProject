@@ -40,19 +40,19 @@ import com.example.mainproject.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
+fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(text = "Audio Screen")
+                    Text(text = "Text Screen")
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,  // Цвет фона
                     titleContentColor = Color.Black // Цвет заголовка
                 ),
                 actions = {
-                    IconButton(onClick = { navController?.navigate("optionScreen")}) {
+                    IconButton(onClick = { /* TODO */ }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Settings"
@@ -70,7 +70,7 @@ fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = nu
                 Spacer(modifier = Modifier.weight(0.3f))
 
                 FloatingActionButton(
-                    onClick = { /* TODO */ },
+                    onClick = { navController?.navigate("audioScreen") },
                     shape = CircleShape,
                     modifier = Modifier.padding(top = 30.dp)
                 ) {
@@ -99,7 +99,7 @@ fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = nu
                 Spacer(modifier = Modifier.weight(0.2f))
 
                 FloatingActionButton(
-                    onClick = { navController?.navigate("textScreen") },
+                    onClick = { /* TODO */ },
                     shape = CircleShape,
                     modifier = Modifier.padding(top = 30.dp)
                 ) {
@@ -130,11 +130,10 @@ fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = nu
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun AudioPreview() {
+fun TextPreview() {
     val context = LocalContext.current
     val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
-
     MainProjectTheme {
-        AudioScreen(viewModel = viewModel)
+        TextScreen(viewModel = viewModel)
     }
 }

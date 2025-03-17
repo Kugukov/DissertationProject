@@ -1,6 +1,5 @@
 package com.example.mainproject.ui.components
 
-import android.content.ClipDescription
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -161,6 +160,7 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                                     card.taleId,
                                     card.title.value,
                                     card.description.value,
+                                    navController,
                                     modifier.weight(0.25f)
                                 )
                                 Log.d("CardItemId", card.taleId.toString())
@@ -180,19 +180,22 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
     }
 }
 
+// Кнопки на сказке для родительской версии
 @Composable
 fun ParentButtons(
     viewModel: MainViewModel,
     cardId: Int,
     cardTitle: String,
     cardDescription: String,
+    navController: NavHostController?,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
     ) {
+        // Кнопка Редактирования текстовой сказки
         IconButton(
-            onClick = {/* TODO */ },
+            onClick = {navController?.navigate("edit_tale/${cardId}") },
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.primary
             ),
@@ -211,8 +214,9 @@ fun ParentButtons(
             )
         }
         Spacer(modifier = Modifier.weight(0.1f))
+        // Кнопка Удаления текстовой сказки
         IconButton(
-            onClick = { viewModel.deleteOnOfTalesList(cardId) },
+            onClick = { viewModel.deleteOneOfTalesList(cardId) },
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.primary
             ),

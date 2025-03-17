@@ -48,7 +48,9 @@ import com.example.mainproject.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
+fun EditScreen(taleId: Int, viewModel: MainViewModel, navController: NavHostController? = null) {
+    val editingTale = viewModel.getTaleById(taleId)
+//    var newTaleTitle by remember { mutableStateOf("") }
     var newTaleTitle by remember { mutableStateOf("") }
     var newTaleDescription by remember { mutableStateOf("") }
     val isErrorTitle = newTaleTitle.length > 20
@@ -57,7 +59,7 @@ fun CreateScreen(viewModel: MainViewModel, navController: NavHostController? = n
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(text = "Create Screen")
+                    Text(text = "Edit Screen")
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -91,7 +93,7 @@ fun CreateScreen(viewModel: MainViewModel, navController: NavHostController? = n
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Новая сказка:",
+                    text = "Изменить сказку:",
                     fontSize = 25.sp,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Left,
@@ -105,10 +107,12 @@ fun CreateScreen(viewModel: MainViewModel, navController: NavHostController? = n
                     value = newTaleTitle,
                     onValueChange = { newTaleTitle = it },
                     placeholder = {
-                        Text(
-                            text = "Название",
-                            fontSize = 20.sp
-                        )
+                        editingTale?.title?.let {
+                            Text(
+                                text = it.value,
+                                fontSize = 20.sp
+                            )
+                        }
                     },
                     singleLine = true,
                     isError = isErrorTitle,
@@ -121,10 +125,12 @@ fun CreateScreen(viewModel: MainViewModel, navController: NavHostController? = n
                     value = newTaleDescription,
                     onValueChange = { newTaleDescription = it },
                     placeholder = {
-                        Text(
-                            text = "Текст сказки",
-                            fontSize = 20.sp
-                        )
+                        editingTale?.description?.let {
+                            Text(
+                                text = it.value,
+                                fontSize = 20.sp
+                            )
+                        }
                     },
                     modifier = Modifier.weight(1f)
                 )
@@ -176,10 +182,10 @@ fun CreateScreen(viewModel: MainViewModel, navController: NavHostController? = n
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun CreatePreview() {
+fun EditPreview() {
     val context = LocalContext.current
     val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     MainProjectTheme {
-        CreateScreen(viewModel = viewModel)
+        EditScreen(1, viewModel = viewModel)
     }
 }

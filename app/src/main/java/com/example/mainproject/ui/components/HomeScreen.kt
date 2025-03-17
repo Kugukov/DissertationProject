@@ -87,6 +87,7 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
             IconButton(
                 onClick = {
                     isPasswordEnable = false
+                    viewModel.updateIsParent(false)
                 },
                 modifier = Modifier
                     .clip(shape = CircleShape)
@@ -128,6 +129,7 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
 
             IconButton(
                 onClick = {
+                    viewModel.updateIsParent(true)
                     isPasswordEnable = true
                 },
                 modifier = Modifier

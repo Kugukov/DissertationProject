@@ -82,7 +82,7 @@ fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = nu
                     Spacer(modifier = Modifier.weight(0.3f))
 
                     FloatingActionButton(
-                        onClick = { /* TODO */ },
+                        onClick = { navController?.navigate("audioScreen") },
                         shape = CircleShape,
                         modifier = Modifier.padding(top = 30.dp)
                     ) {
@@ -96,7 +96,7 @@ fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = nu
                     Spacer(modifier = Modifier.weight(0.2f))
 
                     FloatingActionButton(
-                        onClick = { navController?.navigate("textScreen") },
+                        onClick = { /* TODO Добавление аудио сказки*/ },
                         shape = CircleShape,
                         modifier = Modifier
                             .padding(bottom = 30.dp)

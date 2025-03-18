@@ -62,8 +62,11 @@ class MainViewModel(private val sharedPreferencesManager: SharedPreferencesManag
     fun getTaleById(id: Int): TaleCardList? {
         return _talesList.find { it.taleId == id }
     }
-    fun addToTalesList(id: Int, newTaleTitle: String, newTaleDescription: String) {
+    fun addToTalesListByParameter(id: Int, newTaleTitle: String, newTaleDescription: String) {
         _talesList.add(TaleCardList(id, mutableStateOf(newTaleTitle), mutableStateOf(newTaleDescription)))
+    }
+    fun addToTalesListByTale(newTale: TaleCardList) {
+        _talesList.add(newTale)
     }
     fun deleteOneOfTalesList(id: Int) {
         _talesList.removeAll{it.taleId == id}

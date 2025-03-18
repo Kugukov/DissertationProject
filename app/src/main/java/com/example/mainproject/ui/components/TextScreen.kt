@@ -103,7 +103,7 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                     Spacer(modifier = Modifier.weight(0.2f))
 
                     FloatingActionButton(
-                        onClick = { navController?.navigate("createScreen") },
+                        onClick = { navController?.navigate("createTextTaleScreen") },
                         shape = CircleShape,
                         modifier = Modifier
                             .padding(bottom = 30.dp)
@@ -119,7 +119,7 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                     Spacer(modifier = Modifier.weight(0.2f))
 
                     FloatingActionButton(
-                        onClick = { /* TODO */ },
+                        onClick = { navController?.navigate("textScreen") },
                         shape = CircleShape,
                         modifier = Modifier.padding(top = 30.dp)
                     ) {
@@ -195,7 +195,7 @@ fun ParentButtons(
     ) {
         // Кнопка Редактирования текстовой сказки
         IconButton(
-            onClick = {navController?.navigate("edit_tale/${cardId}") },
+            onClick = {navController?.navigate("editTextTaleScreen/${cardId}") },
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.primary
             ),

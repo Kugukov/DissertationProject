@@ -1,18 +1,13 @@
 package com.example.mainproject.ui.components
 
-import android.annotation.SuppressLint
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -20,7 +15,6 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -48,18 +42,17 @@ import com.example.mainproject.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditScreen(taleId: Int, viewModel: MainViewModel, navController: NavHostController? = null) {
-    val editingTale = viewModel.getTaleById(taleId)
-//    var newTaleTitle by remember { mutableStateOf("") }
+fun CreateTextTaleScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
     var newTaleTitle by remember { mutableStateOf("") }
     var newTaleDescription by remember { mutableStateOf("") }
+    /* TODO ошибка ввода длинного названия */
     val isErrorTitle = newTaleTitle.length > 20
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(text = "Edit Screen")
+                    Text(text = "Create Screen")
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -93,7 +86,7 @@ fun EditScreen(taleId: Int, viewModel: MainViewModel, navController: NavHostCont
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Изменить сказку:",
+                    text = "Новая сказка:",
                     fontSize = 25.sp,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Left,
@@ -107,12 +100,10 @@ fun EditScreen(taleId: Int, viewModel: MainViewModel, navController: NavHostCont
                     value = newTaleTitle,
                     onValueChange = { newTaleTitle = it },
                     placeholder = {
-                        editingTale?.title?.let {
-                            Text(
-                                text = it.value,
-                                fontSize = 20.sp
-                            )
-                        }
+                        Text(
+                            text = "Название",
+                            fontSize = 20.sp
+                        )
                     },
                     singleLine = true,
                     isError = isErrorTitle,
@@ -125,56 +116,25 @@ fun EditScreen(taleId: Int, viewModel: MainViewModel, navController: NavHostCont
                     value = newTaleDescription,
                     onValueChange = { newTaleDescription = it },
                     placeholder = {
-                        editingTale?.description?.let {
-                            Text(
-                                text = it.value,
-                                fontSize = 20.sp
-                            )
-                        }
+                        Text(
+                            text = "Текст сказки",
+                            fontSize = 20.sp
+                        )
                     },
                     modifier = Modifier.weight(1f)
                 )
 
                 Spacer(modifier = Modifier.weight(0.05f))
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .weight(0.15f),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Spacer(modifier = Modifier.weight(0.35f))
-
-                    IconButton(
-                        onClick = { navController?.popBackStack() },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
+                Button(
                         modifier = Modifier
-                            .aspectRatio(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Фоновое изображение",
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .fillMaxSize(),
-                            tint = Color.White
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(0.05f))
-
-                    Button(
-                        modifier = Modifier
-                            .fillMaxHeight(),
+                            .fillMaxHeight(0.1f).fillMaxWidth(),
                         onClick = {
-                            viewModel.addToTalesList(viewModel.newTaleId.value, newTaleTitle, newTaleDescription)
+                            viewModel.addToTalesListByParameter(viewModel.newTaleId.value, newTaleTitle, newTaleDescription)
                             viewModel.updateNewTaleId()
                             navController?.popBackStack()
                         }
                     ) { Text(text = "Сохранить") }
-                }
             }
         }
     }
@@ -182,10 +142,10 @@ fun EditScreen(taleId: Int, viewModel: MainViewModel, navController: NavHostCont
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun EditPreview() {
+fun CreatePreview() {
     val context = LocalContext.current
     val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     MainProjectTheme {
-        EditScreen(1, viewModel = viewModel)
+        CreateTextTaleScreen(viewModel = viewModel)
     }
 }

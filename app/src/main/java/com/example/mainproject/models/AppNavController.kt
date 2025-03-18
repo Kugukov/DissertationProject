@@ -10,8 +10,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mainproject.ui.components.AudioScreen
-import com.example.mainproject.ui.components.CreateScreen
-import com.example.mainproject.ui.components.EditScreen
+import com.example.mainproject.ui.components.CreateTextTaleScreen
+import com.example.mainproject.ui.components.EditTextTaleScreen
 import com.example.mainproject.ui.components.HomeScreen
 import com.example.mainproject.ui.components.LoadScreen
 import com.example.mainproject.ui.components.OptionScreen
@@ -30,11 +30,11 @@ fun AppNavController(navController: NavHostController = rememberNavController())
         composable("audioScreen") { AudioScreen(viewModel, navController) }
         composable("textScreen") { TextScreen(viewModel, navController) }
         composable("optionScreen") { OptionScreen(viewModel, navController) }
-        composable("createScreen") { CreateScreen(viewModel, navController) }
-        composable("editScreen/{taleId}",
+        composable("createTextTaleScreen") { CreateTextTaleScreen(viewModel, navController) }
+        composable("editTextTaleScreen/{taleId}",
             arguments = listOf(navArgument("taleId") { type = NavType.IntType })
         ) { backStackEntry ->
             val taleId = backStackEntry.arguments?.getInt("taleId") ?: 0
-            EditScreen(taleId, viewModel, navController) }
+            EditTextTaleScreen(taleId, viewModel, navController) }
     }
 }

@@ -1,4 +1,4 @@
-package com.example.mainproject.ui.components
+package com.example.mainproject.ui.components.textTales
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -59,7 +59,9 @@ fun CreateTextTaleScreen(viewModel: MainViewModel, navController: NavHostControl
                     titleContentColor = Color.Black
                 ),
                 navigationIcon = {
-                    IconButton(onClick = { navController?.popBackStack() }) {
+                    IconButton(onClick = {
+                        /* TODO сохранение при выходе */
+                        navController?.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Назад"
@@ -130,11 +132,11 @@ fun CreateTextTaleScreen(viewModel: MainViewModel, navController: NavHostControl
                         modifier = Modifier
                             .fillMaxHeight(0.1f).fillMaxWidth(),
                         onClick = {
-                            viewModel.addToTalesListByParameter(viewModel.newTaleId.value, newTaleTitle, newTaleDescription)
+                            viewModel.addToTextTalesListByParameter(viewModel.newTextTaleId.value, newTaleTitle, newTaleDescription)
                             viewModel.updateNewTaleId()
                             navController?.popBackStack()
                         }
-                    ) { Text(text = "Сохранить") }
+                    ) { Text(text = "Сохранить", fontSize = 20.sp) }
             }
         }
     }

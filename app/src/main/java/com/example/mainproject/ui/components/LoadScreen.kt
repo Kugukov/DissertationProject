@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -23,20 +25,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.mainproject.models.MyViewModelFactory
 import com.example.mainproject.ui.theme.MainProjectTheme
+import com.example.mainproject.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
 
 @Composable
-fun LoadScreen(navController: NavHostController? = null) {
+fun LoadScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
+    var delayValue: Long
+
+    delayValue = if (viewModel.isFirstLaunch.value) {
+        3500
+    } else {
+        2000
+    }
 
     LaunchedEffect(Unit) {
-        delay(2000)
+        delay(delayValue)
         navController?.navigate("homeScreen")
+        viewModel.updateFirstLaunch()
+        delayValue = 2000
     }
 
     val circleSize: Dp = 25.dp
@@ -90,14 +107,26 @@ fun LoadScreen(navController: NavHostController? = null) {
                 }
             }
         }
-    }
 
+        if (viewModel.isFirstLaunch.value) {
+            Spacer(modifier = Modifier.height(25.dp))
+            Text(
+                text = "Первый вход без пароля.\n Родителю рекомендуется установить пароль в настройках!",
+                textAlign = TextAlign.Center,
+                fontSize = 24.sp,
+                modifier = Modifier
+            )
+        }
+
+    }
 }
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoadPreview() {
+    val context = LocalContext.current
+    val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     MainProjectTheme {
-        LoadScreen()
+        LoadScreen(viewModel)
     }
 }

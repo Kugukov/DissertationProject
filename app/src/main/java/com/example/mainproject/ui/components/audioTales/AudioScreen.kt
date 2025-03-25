@@ -1,6 +1,5 @@
-package com.example.mainproject.ui.components
+package com.example.mainproject.ui.components.audioTales
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,12 +37,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
+import com.example.mainproject.ui.components.CardItem
+import com.example.mainproject.ui.components.ParentButtons
 import com.example.mainproject.ui.theme.MainProjectTheme
+import com.example.mainproject.viewmodel.AudioViewModel
 import com.example.mainproject.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
+fun AudioScreen(
+    mainViewModel: MainViewModel,
+    audioViewModel: AudioViewModel,
+    navController: NavHostController? = null
+) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -96,7 +102,7 @@ fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = nu
                     Spacer(modifier = Modifier.weight(0.2f))
 
                     FloatingActionButton(
-                        onClick = { /* TODO Добавление аудио сказки*/ },
+                        onClick = { navController?.navigate("createAudioTaleScreen") },
                         shape = CircleShape,
                         modifier = Modifier
                             .padding(bottom = 30.dp)
@@ -128,7 +134,8 @@ fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = nu
 
         },
         content = { padding ->
-            val cards = List(10) { "Элемент 1" }
+            audioViewModel.loadAudioFiles(LocalContext.current)
+            val cards = audioViewModel.audioRecords
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -142,22 +149,31 @@ fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = nu
                         .weight(1f)
                         .padding(top = 40.dp)
                 ) {
-//                    items(cards) { card ->
-//                        if (viewModel.isParent.value) {
-//                            CardItem(
-//                                taleName = card,
-//                                taleDescription = card,
-//                                cardButtons = { modifier -> ParentButtons(modifier.weight(0.25f)) }
-//                            ) { Log.d("CardItem", "Click") }
-//                        } else {
-//                            CardItem(
-//                                taleName = card,
-//                                taleDescription = card,
-//                                cardButtons = { modifier -> ChildButtons(modifier.weight(0.125f)) }
-//                            ) { Log.d("CardItem", "Click") }
-//                        }
-//
-//                    }
+                    items(cards) { card ->
+                        if (mainViewModel.isParent.value) {
+                            CardItem(
+                                taleName = card.title.value,
+                                taleDescription = card.description.value,
+                                cardButtons = { modifier ->
+                                    val cardId = card.audioTaleId
+                                    ParentButtons(
+                                        route = "editAudioTaleScreen/${cardId}",
+                                        doDelete = { audioViewModel.removeAudioRecord(card) },
+                                        navController,
+                                        modifier.weight(0.25f)
+                                    )
+                                },
+                                doClick = { }
+                            )
+                        } else {
+                            CardItem(
+                                taleName = card.title.value,
+                                taleDescription = card.description.value,
+                                cardButtons = { },
+                                doClick = { }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -168,9 +184,9 @@ fun AudioScreen(viewModel: MainViewModel, navController: NavHostController? = nu
 @Composable
 fun AudioPreview() {
     val context = LocalContext.current
+    val audioViewModel: AudioViewModel = viewModel()
     val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
-
     MainProjectTheme {
-        AudioScreen(viewModel = viewModel)
+        AudioScreen(viewModel, audioViewModel)
     }
 }

@@ -11,30 +11,44 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mainproject.models.SharedPreferencesManager
-import com.example.mainproject.utils.TaleCardList
+import com.example.mainproject.ui.components.textTales.TextTale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 
-class MainViewModel(private val sharedPreferencesManager: SharedPreferencesManager) : ViewModel() {
+class MainViewModel(
+    private val sharedPreferencesManager: SharedPreferencesManager,
+) : ViewModel() {
 
-    private val _password = MutableStateFlow("123")
-    private val _passwordValue = mutableStateOf("")
-    private val _isParent = mutableStateOf(true)
-    private val _talesList = mutableStateListOf<TaleCardList>()
+    /* Первый запуск */
+    private var _isFirstLaunch = mutableStateOf(true)
+    val isFirstLaunch: State<Boolean> = _isFirstLaunch
+
+    /* Пароль */
+    private val _password = MutableStateFlow("123") // Установленный
+    private val _passwordValue = mutableStateOf("") // Вводимый
     val password = _password.asStateFlow()
     val passwordValue: State<String> = _passwordValue
+
+    /* Родитель? */
+    private val _isParent = mutableStateOf(true)
     val isParent: State<Boolean> = _isParent
-    val talesList: MutableList<TaleCardList> = _talesList
 
-    private val _newTaleId = mutableIntStateOf(0)
-    var newTaleId: State<Int> = _newTaleId
-    fun updateNewTaleId() {
-        _newTaleId.intValue += 1
-    }
+    /* Список текстовых сказок */
+    private val _textTalesList = mutableStateListOf<TextTale>()
+    val textTalesList: MutableList<TextTale> = _textTalesList
 
+    /* Заглушка id текстовой сказки */
+    private val _newTextTaleId = mutableIntStateOf(0)
+    var newTextTaleId: State<Int> = _newTextTaleId
+
+    /* Список аудио сказок */
+//    private val _audioTalesList = mutableStateListOf<AudioTaleCardList>()
+//    val audioTalesList: MutableList<AudioTaleCardList> get() = _audioTalesList
+
+    /* Настройка картинок */
     var childImage: Bitmap? = null
         private set
     var parentImage: Bitmap? = null
@@ -42,12 +56,34 @@ class MainViewModel(private val sharedPreferencesManager: SharedPreferencesManag
 
     init {
         _password.value = sharedPreferencesManager.getPassword()
+        _isFirstLaunch.value = sharedPreferencesManager.getFirstLaunch()
+//        loadAudioFiles()
     }
 
+    /* Работа с заглушкой id */
+    fun updateNewTaleId() {
+        _newTextTaleId.intValue += 1
+    }
+
+//    /* Работа с заглушкой id */
+//    fun updateNewAudioTaleId() {
+//        _newAudioTaleId.intValue += 1
+//    }
+
+    /* Обновление флага первого запуска */
+    fun updateFirstLaunch() {
+        _isFirstLaunch.value = false
+        viewModelScope.launch {
+            sharedPreferencesManager.disableFirstLaunch()
+        }
+    }
+
+    /* Вводимый пароль при входе */
     fun updatePasswordValue(newPasswordValue: String) {
         _passwordValue.value = newPasswordValue
     }
 
+    /* Установка пароля */
     fun updatePassword(newPassword: String) {
         _password.value = newPassword
         viewModelScope.launch {
@@ -55,23 +91,82 @@ class MainViewModel(private val sharedPreferencesManager: SharedPreferencesManag
         }
     }
 
+    /* Определение кто вошел */
     fun updateIsParent(newBool: Boolean) {
         _isParent.value = newBool
     }
 
-    fun getTaleById(id: Int): TaleCardList? {
-        return _talesList.find { it.taleId == id }
-    }
-    fun addToTalesListByParameter(id: Int, newTaleTitle: String, newTaleDescription: String) {
-        _talesList.add(TaleCardList(id, mutableStateOf(newTaleTitle), mutableStateOf(newTaleDescription)))
-    }
-    fun addToTalesListByTale(newTale: TaleCardList) {
-        _talesList.add(newTale)
-    }
-    fun deleteOneOfTalesList(id: Int) {
-        _talesList.removeAll{it.taleId == id}
+    /* Получение текстовой сказки по id */
+    fun getTextTaleById(id: Int): TextTale? {
+        return _textTalesList.find { it.textTaleId == id }
     }
 
+    /* Добавление текстовой сказки в список сказок по всем параметрам */
+    fun addToTextTalesListByParameter(id: Int, newTaleTitle: String, newTaleDescription: String) {
+        _textTalesList.add(
+            TextTale(
+                id,
+                mutableStateOf(newTaleTitle),
+                mutableStateOf(newTaleDescription)
+            )
+        )
+    }
+
+    /* Добавление текстовой сказки в список сказок по Tale */
+    fun addToTextTalesListByTale(newTale: TextTale) {
+        _textTalesList.add(newTale)
+    }
+
+    /* Удаление текстовой сказки из списка */
+    fun deleteOneOfTextTalesList(id: Int) {
+        _textTalesList.removeAll { it.textTaleId == id }
+    }
+
+//    private fun loadAudioFiles() {
+//        val cacheDir = context.cacheDir
+////        val audioDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC) ?: return
+//        val files =
+//            cacheDir.listFiles()?.filter { it.extension.lowercase() == "m4a" } ?: emptyList()
+//
+//        files.forEachIndexed { index, file ->
+//            val record = AudioTaleCardList(
+//                taleId = index + 1,
+//                audioFile = file,
+//                title = mutableStateOf(" "),
+//                description = mutableStateOf(" "),
+//            )
+//            _audioTalesList.add(record)
+//        }
+//    }
+
+//    /* Получение текстовой сказки по id */
+//    fun getAudioTaleById(id: Int): TextTaleCardList? {
+//        return _textTalesList.find { it.taleId == id }
+//    }
+//
+//    /* Добавление текстовой сказки в список сказок по всем параметрам */
+//    fun addToAudioTalesListByParameter(id: Int, newTaleTitle: String, newTaleDescription: String) {
+//        _audioTalesList.add(
+//            AudioTaleCardList(
+//                id,
+//                mutableStateOf(newTaleTitle),
+//                mutableStateOf(newTaleDescription),
+//
+//            )
+//        )
+//    }
+//
+//    /* Добавление текстовой сказки в список сказок по Tale */
+//    fun addToAudioTalesListByTale(newTale: TextTaleCardList) {
+//        _textTalesList.add(newTale)
+//    }
+//
+//    /* Удаление текстовой сказки из списка */
+//    fun deleteOneOfAudioTalesList(id: Int) {
+//        _textTalesList.removeAll { it.taleId == id }
+//    }
+
+    /* Выбор картинки */
     fun loadImage(context: Context, fileName: String) {
         val bitmap = loadImageFromInternalStorage(context, fileName)
         if (fileName == "saved_child_image.jpg") {
@@ -83,11 +178,13 @@ class MainViewModel(private val sharedPreferencesManager: SharedPreferencesManag
 
     }
 
+    /* Сохранение картинки */
     fun saveImage(context: Context, uri: Uri, fileName: String) {
         saveImageToInternalStorage(context, uri, fileName)
         loadImage(context, fileName)
     }
 
+    /* Сохранение картинки во внутреннее хранилище */
     private fun saveImageToInternalStorage(context: Context, uri: Uri, fileName: String): String? {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri)
@@ -103,6 +200,7 @@ class MainViewModel(private val sharedPreferencesManager: SharedPreferencesManag
         }
     }
 
+    /* Загрузка картинки из внутреннего хранилища */
     private fun loadImageFromInternalStorage(context: Context, fileName: String): Bitmap? {
         return try {
             val file = File(context.filesDir, fileName)

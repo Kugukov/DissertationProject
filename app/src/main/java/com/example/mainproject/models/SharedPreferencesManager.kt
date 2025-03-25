@@ -2,6 +2,7 @@ package com.example.mainproject.models
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.runtime.mutableStateOf
 
 class SharedPreferencesManager(context: Context) {
     private val sharedPreferences: SharedPreferences =
@@ -15,4 +16,10 @@ class SharedPreferencesManager(context: Context) {
         return sharedPreferences.getString("password_key", "") ?: "123"
     }
 
+    fun disableFirstLaunch() {
+        sharedPreferences.edit().putBoolean("is_first_launch", false).apply()
+    }
+    fun getFirstLaunch(): Boolean {
+        return sharedPreferences.getBoolean("is_first_launch", true)
+    }
 }

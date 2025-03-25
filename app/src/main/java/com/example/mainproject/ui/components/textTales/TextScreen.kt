@@ -1,4 +1,4 @@
-package com.example.mainproject.ui.components
+package com.example.mainproject.ui.components.textTales
 
 import android.util.Log
 import androidx.compose.foundation.background
@@ -18,8 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -45,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
+import com.example.mainproject.ui.components.CardItem
+import com.example.mainproject.ui.components.ParentButtons
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.viewmodel.MainViewModel
 
@@ -135,7 +135,7 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
             }
         }
     ) { padding ->
-        val cards = viewModel.talesList
+        val cards = viewModel.textTalesList
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -155,15 +155,14 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                             taleName = card.title.value,
                             taleDescription = card.description.value,
                             cardButtons = { modifier ->
+                                val cardId = card.textTaleId
                                 ParentButtons(
-                                    viewModel,
-                                    card.taleId,
-                                    card.title.value,
-                                    card.description.value,
+                                    "editTextTaleScreen/${cardId}",
+                                    { viewModel.deleteOneOfTextTalesList(cardId) },
                                     navController,
                                     modifier.weight(0.25f)
                                 )
-                                Log.d("CardItemId", card.taleId.toString())
+                                Log.d("CardItemId", card.textTaleId.toString())
                             }
                         ) { Log.d("CardItem", "Click") }
                     } else {
@@ -178,64 +177,6 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
             }
         }
     }
-}
-
-// Кнопки на сказке для родительской версии
-@Composable
-fun ParentButtons(
-    viewModel: MainViewModel,
-    cardId: Int,
-    cardTitle: String,
-    cardDescription: String,
-    navController: NavHostController?,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-    ) {
-        // Кнопка Редактирования текстовой сказки
-        IconButton(
-            onClick = {navController?.navigate("editTextTaleScreen/${cardId}") },
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
-            modifier = Modifier
-                .clip(shape = CircleShape)
-                .weight(0.45f)
-                .aspectRatio(1f)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Изменение",
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxSize(),
-                tint = Color.White
-            )
-        }
-        Spacer(modifier = Modifier.weight(0.1f))
-        // Кнопка Удаления текстовой сказки
-        IconButton(
-            onClick = { viewModel.deleteOneOfTalesList(cardId) },
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
-            modifier = Modifier
-                .clip(shape = CircleShape)
-                .weight(0.45f)
-                .aspectRatio(1f)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Clear,
-                contentDescription = "Удаление",
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxSize(),
-                tint = Color.White
-            )
-        }
-    }
-
 }
 
 @Composable

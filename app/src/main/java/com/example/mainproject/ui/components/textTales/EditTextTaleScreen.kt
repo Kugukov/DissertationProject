@@ -1,4 +1,4 @@
-package com.example.mainproject.ui.components
+package com.example.mainproject.ui.components.textTales
 
 import android.util.Log
 import androidx.compose.foundation.layout.Column
@@ -39,13 +39,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
 import com.example.mainproject.ui.theme.MainProjectTheme
-import com.example.mainproject.utils.TaleCardList
 import com.example.mainproject.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditTextTaleScreen(taleId: Int, viewModel: MainViewModel, navController: NavHostController? = null) {
-    var editingTale = viewModel.getTaleById(taleId)
+fun EditTextTaleScreen(
+    taleId: Int,
+    viewModel: MainViewModel,
+    navController: NavHostController? = null
+) {
+    var editingTale = viewModel.getTextTaleById(taleId)
     var newTaleTitle by remember { mutableStateOf(editingTale?.title?.value ?: "") }
     var newTaleDescription by remember { mutableStateOf(editingTale?.description?.value ?: "") }
     /* TODO ошибка ввода длинного названия */
@@ -125,13 +128,13 @@ fun EditTextTaleScreen(taleId: Int, viewModel: MainViewModel, navController: Nav
                         .fillMaxWidth()
                         .fillMaxHeight(0.1f),
                     onClick = { /* TODO Изменить функцию изменения сказки под БД */
-                        editingTale = TaleCardList(
+                        editingTale = TextTale(
                             taleId,
                             mutableStateOf(newTaleTitle),
                             mutableStateOf(newTaleDescription)
                         )
-                        viewModel.deleteOneOfTalesList(taleId)
-                        viewModel.addToTalesListByTale(editingTale!!)
+                        viewModel.deleteOneOfTextTalesList(taleId)
+                        viewModel.addToTextTalesListByTale(editingTale!!)
                         navController?.popBackStack()
                     }
                 ) { Text(text = "Сохранить") }

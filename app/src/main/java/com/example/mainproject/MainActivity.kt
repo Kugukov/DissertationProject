@@ -11,11 +11,6 @@ import com.example.mainproject.models.AppNavController
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(Manifest.permission.RECORD_AUDIO),
-            0
-        )
         enableEdgeToEdge()
         setContent {
             AppNavController()

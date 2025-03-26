@@ -7,6 +7,7 @@ data class AudioTale(
     val audioTaleId: Int,
     val title: MutableState<String>,
     val description: MutableState<String>,
-    val audioFile: File
-    /*TODO длительность записи и время создания*/
+    val audioFile: File,
+    val audioDuration: MutableState<String>
+    /* TODO время создания */
 )

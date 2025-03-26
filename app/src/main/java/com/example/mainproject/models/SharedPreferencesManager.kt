@@ -22,4 +22,6 @@ class SharedPreferencesManager(context: Context) {
     fun getFirstLaunch(): Boolean {
         return sharedPreferences.getBoolean("is_first_launch", true)
     }
+
+    /*TODO сохранение списка текстовых сказок*/
 }

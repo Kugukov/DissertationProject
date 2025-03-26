@@ -28,7 +28,7 @@ fun AppNavController(navController: NavHostController = rememberNavController())
     val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     val audioViewModel: AudioViewModel = viewModel()
 
-    NavHost(navController = navController, startDestination = "audioScreen") {
+    NavHost(navController = navController, startDestination = "loadScreen") {
         composable("loadScreen") { LoadScreen(viewModel, navController) }
         composable("homeScreen") { HomeScreen(viewModel, navController) }
         composable("audioScreen") { AudioScreen(viewModel, audioViewModel, navController) }

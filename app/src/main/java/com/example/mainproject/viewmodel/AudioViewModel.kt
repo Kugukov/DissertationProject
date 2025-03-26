@@ -1,5 +1,6 @@
 package com.example.mainproject.viewmodel
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.MediaPlayer
 import android.os.Environment
@@ -18,12 +19,12 @@ class AudioViewModel: ViewModel() {
         val files = audioDir.listFiles()?.filter { it.extension.lowercase() == "m4a" } ?: emptyList()
         _audioRecords.clear()
         files.forEachIndexed { index, file ->
-            // TODO Дополнительно можно получить длительность через MediaPlayer, если нужно.
             val record = AudioTale(
                 audioTaleId = index + 1,
                 audioFile = file,
                 title = mutableStateOf(file.nameWithoutExtension),
-                description = mutableStateOf(" ")
+                description = mutableStateOf(getAudioDuration(file)),
+                audioDuration = mutableStateOf(getAudioDuration(file))
             )
             _audioRecords.add(record)
         }
@@ -36,14 +37,18 @@ class AudioViewModel: ViewModel() {
         }
     }
 
-    private fun getAudioDuration(file: File): Long {
+    @SuppressLint("DefaultLocale")
+    fun getAudioDuration(file: File): String {
         val mediaPlayer = MediaPlayer()
         return try {
             mediaPlayer.setDataSource(file.absolutePath)
             mediaPlayer.prepare()
-            mediaPlayer.duration.toLong()
+            val ms = mediaPlayer.duration.toLong()
+            val minutes = (ms / 1000) / 600
+            val secs = (ms / 1000) % 600
+            return String.format("%02d:%02d", minutes, secs)
         } catch (e: Exception) {
-            0L
+            ""
         } finally {
             mediaPlayer.release()
         }

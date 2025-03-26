@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.mainproject.R
@@ -60,77 +61,16 @@ fun CardItem(
                     .weight(0.5f)
             ) {
                 Text(text = taleName, modifier = Modifier.fillMaxWidth())
-                Text(text = taleDescription, modifier = Modifier.fillMaxWidth())
+                Text(
+                    text = taleDescription,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             Spacer(modifier = Modifier.weight(0.025f))
 
             cardButtons(Modifier)
-//            Prev(modifier = Modifier.weight(0.25f))
-
-
-//            IconButton(
-//                enabled = isParent,
-//                onClick = {/* TODO */ },
-//                colors = IconButtonDefaults.iconButtonColors(
-//                    containerColor = MaterialTheme.colorScheme.primary
-//                ),
-//                modifier = Modifier
-//                    .clip(shape = CircleShape)
-//                    .weight(0.15f)
-//                    .aspectRatio(1f)
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Default.Edit,
-//                    contentDescription = "Фоновое изображение",
-//                    modifier = Modifier
-//                        .padding(8.dp)
-//                        .fillMaxSize(),
-//                    tint = Color.White
-//                )
-//            }
-//            Spacer(modifier = Modifier.weight(0.05f))
-//            IconButton(
-//                enabled = isParent,
-//                onClick = {/* TODO */ },
-//                colors = IconButtonDefaults.iconButtonColors(
-//                    containerColor = MaterialTheme.colorScheme.primary
-//                ),
-//                modifier = Modifier
-//                    .clip(shape = CircleShape)
-//                    .weight(0.15f)
-//                    .aspectRatio(1f)
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Default.Clear,
-//                    contentDescription = "Фоновое изображение",
-//                    modifier = Modifier
-//                        .padding(8.dp)
-//                        .fillMaxSize(),
-//                    tint = Color.White
-//                )
-//            }
-//            IconButton(
-//                enabled = !isParent,
-//                onClick = {/* TODO */ },
-//                colors = IconButtonDefaults.iconButtonColors(
-//                    containerColor = MaterialTheme.colorScheme.primary
-//                ),
-//                modifier = Modifier
-//                    .clip(shape = CircleShape)
-//                    .weight(0.15f)
-//                    .aspectRatio(1f)
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Default.PlayArrow,
-//                    contentDescription = "Фоновое изображение",
-//                    modifier = Modifier
-//                        .padding(8.dp)
-//                        .fillMaxSize(),
-//                    tint = Color.White
-//                )
-//            }
-//            Spacer(modifier = Modifier.weight(0.05f))
-
         }
     }
 }

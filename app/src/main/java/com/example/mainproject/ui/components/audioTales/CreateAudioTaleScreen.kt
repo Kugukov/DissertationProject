@@ -1,7 +1,17 @@
 package com.example.mainproject.ui.components.audioTales
 
-import android.util.Log
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.MediaPlayer
+import android.net.Uri
+import android.provider.Settings
 import android.view.MotionEvent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,21 +50,51 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.utils.AudioRecorder
 import com.example.mainproject.viewmodel.MainViewModel
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
-    var newTaleTitle by remember { mutableStateOf("") }
-    var newTaleDescription by remember { mutableStateOf("") }
     val context = LocalContext.current
-    /* TODO ошибка ввода длинного названия */
-    val isErrorTitle = newTaleTitle.length > 20
+    val activity = context as Activity
+    var creatingTale: File? = null
+    var taleTitle by remember { mutableStateOf("") }
+    var taleDescription by remember { mutableStateOf("") }
+    val maxTitleLength = 50
+    val maxDescriptionLength = 500
+    val isErrorTitle = taleTitle.length >= maxTitleLength
+    val isErrorDescription = taleDescription.length >= maxDescriptionLength
+    val audioRecorder = remember { AudioRecorder(context) }
+
+    val requestPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (!isGranted) {
+                if (!ActivityCompat.shouldShowRequestPermissionRationale(
+                        activity,
+                        Manifest.permission.RECORD_AUDIO
+                    )
+                ) {
+                    // Пользователь нажал "Не спрашивать снова"
+                    Toast.makeText(
+                        context,
+                        "Перейдите в настройки и включите доступ к микрофону",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    openAppSettings(context)
+                } else {
+                    Toast.makeText(context, "Разрешение не предоставлено!", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+        }
 
     Scaffold(
         topBar = {
@@ -108,8 +148,12 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                 Spacer(modifier = Modifier.width(20.dp))
 
                 OutlinedTextField(
-                    value = newTaleTitle,
-                    onValueChange = { newTaleTitle = it },
+                    value = taleTitle,
+                    onValueChange = {
+                        if (it.length <= maxTitleLength) {
+                            taleTitle = it
+                        }
+                    },
                     placeholder = {
                         Text(
                             text = "Название",
@@ -124,14 +168,19 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                 Spacer(modifier = Modifier.weight(0.05f))
 
                 OutlinedTextField(
-                    value = newTaleDescription,
-                    onValueChange = { newTaleDescription = it },
+                    value = taleDescription,
+                    onValueChange = {
+                        if (it.length <= maxTitleLength) {
+                            taleDescription = it
+                        }
+                    },
                     placeholder = {
                         Text(
                             text = "Краткое описание",
                             fontSize = 20.sp
                         )
                     },
+                    isError = isErrorDescription,
                     modifier = Modifier.weight(0.20f)
                 )
 
@@ -149,27 +198,52 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                             .pointerInteropFilter { motionEvent ->
                                 when (motionEvent.action) {
                                     MotionEvent.ACTION_DOWN -> {
-                                        if (newTaleTitle != "") {
-                                            AudioRecorder(context).startRecording(newTaleTitle)
-                                        } else {
-                                            AudioRecorder(context).startRecording(
-                                                "audio_${System.currentTimeMillis()}"
-                                            )
+                                        if (ContextCompat.checkSelfPermission(
+                                                context,
+                                                Manifest.permission.RECORD_AUDIO
+                                            ) != PackageManager.PERMISSION_GRANTED
+                                        ) {
+                                            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                            return@pointerInteropFilter true
                                         }
+                                        if (taleTitle.isEmpty()) {
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    "Дайте название сказке",
+                                                    Toast.LENGTH_SHORT
+                                                )
+                                                .show()
+                                            return@pointerInteropFilter true
+                                        }
+
+                                        val fileName = taleTitle.ifEmpty {
+                                            "audio_${System.currentTimeMillis()}"
+                                        }
+                                        try {
+                                            audioRecorder.startRecording(fileName)
+                                        } catch (e: SecurityException) {
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    "Нет доступа к микрофону",
+                                                    Toast.LENGTH_SHORT
+                                                )
+                                                .show()
+                                        }
+
                                         true
                                     }
 
-                                    MotionEvent.ACTION_CANCEL -> {
-                                        AudioRecorder(context).stopRecording()
+                                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                        creatingTale = audioRecorder.stopRecording()
                                         true
                                     }
 
                                     else -> false
                                 }
                             },
-                        onClick = {
-                            Log.d("Audio Record", "Start/Stop")
-                        }
+                        onClick = { }
                     ) {
                         Text(
                             text = "Записать",
@@ -185,8 +259,13 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                             .weight(0.475f)
                             .fillMaxHeight(),
                         onClick = {
-                            AudioRecorder(context).stopRecording()
-                            /* TODO Прослушивание записи */
+                            creatingTale?.let {
+                                MediaPlayer().apply {
+                                    setDataSource(creatingTale!!.absolutePath)
+                                    prepare()
+                                    start()
+                                }
+                            }
                         }
                     ) {
                         Text(
@@ -211,6 +290,17 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
             }
         }
     }
+}
+
+/**
+ * Функция для открытия настроек приложения, если пользователь запретил разрешение "Не спрашивать снова"
+ */
+fun openAppSettings(context: Context) {
+    val intent = Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        Uri.fromParts("package", context.packageName, null)
+    )
+    context.startActivity(intent)
 }
 
 @Preview(showBackground = true, showSystemUi = true)

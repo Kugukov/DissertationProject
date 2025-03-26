@@ -17,7 +17,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -44,6 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
 import com.example.mainproject.ui.components.CardItem
+import com.example.mainproject.ui.components.ChildButtons
 import com.example.mainproject.ui.components.ParentButtons
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.viewmodel.MainViewModel
@@ -169,7 +172,16 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                         CardItem(
                             taleName = card.title.value,
                             taleDescription = card.description.value,
-                            cardButtons = { modifier -> ChildButtons(modifier.weight(0.125f)) }
+                            cardButtons = { modifier ->
+                                val cardId = card.textTaleId
+                                ChildButtons(
+                                    "",
+                                    Icons.AutoMirrored.Filled.Message,
+                                    { },
+                                    navController,
+                                    modifier.weight(0.125f)
+                                )
+                            }
                         ) { Log.d("CardItem", "Click") }
                     }
 
@@ -179,33 +191,33 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
     }
 }
 
-@Composable
-fun ChildButtons(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-    ) {
-        IconButton(
-            onClick = {/* TODO */ },
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
-            modifier = Modifier
-                .clip(shape = CircleShape)
-                .aspectRatio(1f)
-        ) {
-            Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = "Фоновое изображение",
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxSize(),
-                tint = Color.White
-            )
-        }
-
-    }
-
-}
+//@Composable
+//fun ChildButtons(modifier: Modifier = Modifier) {
+//    Row(
+//        modifier = modifier
+//    ) {
+//        IconButton(
+//            onClick = {/* TODO */ },
+//            colors = IconButtonDefaults.iconButtonColors(
+//                containerColor = MaterialTheme.colorScheme.primary
+//            ),
+//            modifier = Modifier
+//                .clip(shape = CircleShape)
+//                .aspectRatio(1f)
+//        ) {
+//            Icon(
+//                imageVector = Icons.Default.PlayArrow,
+//                contentDescription = "Фоновое изображение",
+//                modifier = Modifier
+//                    .padding(8.dp)
+//                    .fillMaxSize(),
+//                tint = Color.White
+//            )
+//        }
+//
+//    }
+//
+//}
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

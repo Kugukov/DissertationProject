@@ -1,5 +1,7 @@
 package com.example.mainproject.ui.components.audioTales
 
+import android.media.MediaPlayer
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,8 +16,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.BottomAppBar
@@ -29,6 +34,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -38,10 +48,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
 import com.example.mainproject.ui.components.CardItem
+import com.example.mainproject.ui.components.ChildButtons
 import com.example.mainproject.ui.components.ParentButtons
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.viewmodel.AudioViewModel
 import com.example.mainproject.viewmodel.MainViewModel
+import java.io.File
+import java.io.IOException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,11 +179,66 @@ fun AudioScreen(
                                 doClick = { }
                             )
                         } else {
+                            var isPlaying by remember { mutableStateOf(false) }
+                            val mediaPlayer = remember { MediaPlayer() }
                             CardItem(
                                 taleName = card.title.value,
                                 taleDescription = card.description.value,
-                                cardButtons = { },
-                                doClick = { }
+                                cardButtons = { modifier ->
+                                    val cardId = card.audioTaleId
+
+                                    ChildButtons(
+                                        route = "",
+                                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                        // Определение запущено ли воспроизведение
+                                        getContent = {
+                                            if (isPlaying) {
+                                                mediaPlayer.stop()
+                                                mediaPlayer.reset()
+                                                isPlaying = false
+                                            } else {
+                                                try {
+                                                    mediaPlayer.setDataSource(card.audioFile.absolutePath)
+                                                    mediaPlayer.prepare()
+                                                    mediaPlayer.start()
+                                                    isPlaying = true
+
+                                                    // Останавливаем воспроизведение и меняем иконку после завершения
+                                                    mediaPlayer.setOnCompletionListener {
+                                                        isPlaying = false
+                                                        mediaPlayer.reset()
+                                                    }
+                                                } catch (e: IOException) {
+                                                    e.printStackTrace()
+                                                }
+                                            }
+                                        },
+                                        navController,
+                                        modifier.weight(0.125f)
+                                    )
+                                },
+                                doClick = {
+                                    if (isPlaying) {
+                                        mediaPlayer.stop()
+                                        mediaPlayer.reset()
+                                        isPlaying = false
+                                    } else {
+                                        try {
+                                            mediaPlayer.setDataSource(card.audioFile.absolutePath)
+                                            mediaPlayer.prepare()
+                                            mediaPlayer.start()
+                                            isPlaying = true
+
+                                            // Останавливаем воспроизведение и меняем иконку после завершения
+                                            mediaPlayer.setOnCompletionListener {
+                                                isPlaying = false
+                                                mediaPlayer.reset()
+                                            }
+                                        } catch (e: IOException) {
+                                            e.printStackTrace()
+                                        }
+                                    }
+                                }
                             )
                         }
                     }
@@ -179,6 +247,7 @@ fun AudioScreen(
         }
     )
 }
+
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

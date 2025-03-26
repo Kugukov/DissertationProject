@@ -51,8 +51,10 @@ fun EditTextTaleScreen(
     var editingTale = viewModel.getTextTaleById(taleId)
     var newTaleTitle by remember { mutableStateOf(editingTale?.title?.value ?: "") }
     var newTaleDescription by remember { mutableStateOf(editingTale?.description?.value ?: "") }
-    /* TODO ошибка ввода длинного названия */
-    val isErrorTitle = newTaleTitle.length > 20
+    val maxTitleLength = 50
+    val maxDescriptionLength = 500
+    val isErrorTitle = newTaleTitle.length >= maxTitleLength
+    val isErrorDescription = newTaleDescription.length >= maxDescriptionLength
 
     Scaffold(
         topBar = {
@@ -105,8 +107,9 @@ fun EditTextTaleScreen(
                 OutlinedTextField(
                     value = newTaleTitle,
                     onValueChange = {
-                        newTaleTitle = it
-                        Log.d("Title Update", newTaleTitle)
+                        if (it.length <= maxTitleLength) {
+                            newTaleTitle = it
+                        }
                     },
                     singleLine = true,
                     isError = isErrorTitle,
@@ -117,7 +120,12 @@ fun EditTextTaleScreen(
 
                 OutlinedTextField(
                     value = newTaleDescription,
-                    onValueChange = { newTaleDescription = it },
+                    onValueChange = {
+                        if (it.length <= maxTitleLength) {
+                            newTaleDescription = it
+                        }
+                    },
+                    isError = isErrorDescription,
                     modifier = Modifier.weight(1f)
                 )
 

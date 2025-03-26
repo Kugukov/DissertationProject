@@ -43,10 +43,12 @@ import com.example.mainproject.viewmodel.MainViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTextTaleScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
-    var newTaleTitle by remember { mutableStateOf("") }
-    var newTaleDescription by remember { mutableStateOf("") }
-    /* TODO ошибка ввода длинного названия */
-    val isErrorTitle = newTaleTitle.length > 20
+    var taleTitle by remember { mutableStateOf("") }
+    var taleDescription by remember { mutableStateOf("") }
+    val maxTitleLength = 50
+    val maxDescriptionLength = 500
+    val isErrorTitle = taleTitle.length >= maxTitleLength
+    val isErrorDescription = taleDescription.length >= maxDescriptionLength
 
     Scaffold(
         topBar = {
@@ -61,7 +63,8 @@ fun CreateTextTaleScreen(viewModel: MainViewModel, navController: NavHostControl
                 navigationIcon = {
                     IconButton(onClick = {
                         /* TODO сохранение при выходе */
-                        navController?.popBackStack() }) {
+                        navController?.popBackStack()
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Назад"
@@ -71,7 +74,7 @@ fun CreateTextTaleScreen(viewModel: MainViewModel, navController: NavHostControl
                 modifier = Modifier.fillMaxHeight(0.10f)
             )
         },
-        ) { padding ->
+    ) { padding ->
         Card(
             colors = CardDefaults.cardColors(),
             modifier = Modifier
@@ -99,8 +102,12 @@ fun CreateTextTaleScreen(viewModel: MainViewModel, navController: NavHostControl
                 Spacer(modifier = Modifier.weight(0.05f))
 
                 OutlinedTextField(
-                    value = newTaleTitle,
-                    onValueChange = { newTaleTitle = it },
+                    value = taleTitle,
+                    onValueChange = {
+                        if (it.length <= maxTitleLength) {
+                            taleTitle = it
+                        }
+                    },
                     placeholder = {
                         Text(
                             text = "Название",
@@ -115,28 +122,38 @@ fun CreateTextTaleScreen(viewModel: MainViewModel, navController: NavHostControl
                 Spacer(modifier = Modifier.weight(0.05f))
 
                 OutlinedTextField(
-                    value = newTaleDescription,
-                    onValueChange = { newTaleDescription = it },
+                    value = taleDescription,
+                    onValueChange = {
+                        if (it.length <= maxTitleLength) {
+                            taleDescription = it
+                        }
+                    },
                     placeholder = {
                         Text(
                             text = "Текст сказки",
                             fontSize = 20.sp
                         )
                     },
+                    isError = isErrorDescription,
                     modifier = Modifier.weight(1f)
                 )
 
                 Spacer(modifier = Modifier.weight(0.05f))
 
                 Button(
-                        modifier = Modifier
-                            .fillMaxHeight(0.1f).fillMaxWidth(),
-                        onClick = {
-                            viewModel.addToTextTalesListByParameter(viewModel.newTextTaleId.value, newTaleTitle, newTaleDescription)
-                            viewModel.updateNewTaleId()
-                            navController?.popBackStack()
-                        }
-                    ) { Text(text = "Сохранить", fontSize = 20.sp) }
+                    modifier = Modifier
+                        .fillMaxHeight(0.1f)
+                        .fillMaxWidth(),
+                    onClick = {
+                        viewModel.addToTextTalesListByParameter(
+                            viewModel.newTextTaleId.value,
+                            taleTitle,
+                            taleDescription
+                        )
+                        viewModel.updateNewTaleId()
+                        navController?.popBackStack()
+                    }
+                ) { Text(text = "Сохранить", fontSize = 20.sp) }
             }
         }
     }

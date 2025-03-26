@@ -3,6 +3,7 @@ package com.example.mainproject.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.media.MediaRecorder
+import android.os.Build
 import android.os.Environment
 import java.io.File
 
@@ -17,11 +18,18 @@ class AudioRecorder(private val context: Context) {
         val fileName = "${title}.m4a"
         audioFile = File(audioDir, fileName)
 
-        mediaRecorder = MediaRecorder(context).apply {
+        mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MediaRecorder()
+        } else {
+            MediaRecorder(context)
+        }
+
+        mediaRecorder?.apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
             setOutputFile(audioFile!!.absolutePath)
+            setMaxDuration(300000)
             prepare()
             start()
         }

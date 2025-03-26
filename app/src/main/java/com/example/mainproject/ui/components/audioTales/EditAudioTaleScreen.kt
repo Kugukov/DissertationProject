@@ -1,7 +1,13 @@
 package com.example.mainproject.ui.components.audioTales
 
+import android.Manifest
+import android.app.Activity
+import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.view.MotionEvent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +45,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import com.example.mainproject.utils.AudioRecorder
 import com.example.mainproject.viewmodel.AudioViewModel
@@ -51,14 +59,38 @@ fun EditAudioTaleScreen(
     navController: NavHostController? = null
 ) {
     val context = LocalContext.current
+    val activity = context as Activity
     val editingTale = audioViewModel.audioRecords.find { it.audioTaleId == audioTaleId } ?: return
     var newAudioFile by remember { mutableStateOf(editingTale.audioFile) }
     var newTaleTitle by remember { mutableStateOf(editingTale.title.value) }
     var newTaleDescription by remember { mutableStateOf(editingTale.description.value) }
+    val maxTitleLength = 50
+    val maxDescriptionLength = 500
+    val isErrorTitle = newTaleTitle.length >= maxTitleLength
+    val isErrorDescription = newTaleDescription.length >= maxDescriptionLength
     val audioRecorder = remember { AudioRecorder(context) }
 
-    /* TODO ошибка ввода длинного названия */
-    val isErrorTitle = newTaleTitle.length > 20
+    val requestPermissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (!isGranted) {
+                if (!ActivityCompat.shouldShowRequestPermissionRationale(
+                        activity,
+                        Manifest.permission.RECORD_AUDIO
+                    )
+                ) {
+                    // Пользователь нажал "Не спрашивать снова"
+                    Toast.makeText(
+                        context,
+                        "Перейдите в настройки и включите доступ к микрофону",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    openAppSettings(context)
+                } else {
+                    Toast.makeText(context, "Разрешение не предоставлено!", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+        }
 
     Scaffold(
         topBar = {
@@ -113,7 +145,11 @@ fun EditAudioTaleScreen(
 
                 OutlinedTextField(
                     value = newTaleTitle,
-                    onValueChange = { newTaleTitle = it },
+                    onValueChange = {
+                        if (it.length <= maxTitleLength) {
+                            newTaleTitle = it
+                        }
+                    },
                     placeholder = {
                         Text(
                             text = "Название",
@@ -129,13 +165,18 @@ fun EditAudioTaleScreen(
 
                 OutlinedTextField(
                     value = newTaleDescription,
-                    onValueChange = { newTaleDescription = it },
+                    onValueChange = {
+                        if (it.length <= maxTitleLength) {
+                            newTaleDescription = it
+                        }
+                    },
                     placeholder = {
                         Text(
                             text = "Краткое описание",
                             fontSize = 20.sp
                         )
                     },
+                    isError = isErrorDescription,
                     modifier = Modifier.weight(0.20f)
                 )
 
@@ -153,7 +194,39 @@ fun EditAudioTaleScreen(
                             .pointerInteropFilter { motionEvent ->
                                 when (motionEvent.action) {
                                     MotionEvent.ACTION_DOWN -> {
-                                        audioRecorder.startRecording(newTaleTitle)
+                                        if (ContextCompat.checkSelfPermission(
+                                                context,
+                                                Manifest.permission.RECORD_AUDIO
+                                            ) != PackageManager.PERMISSION_GRANTED
+                                        ) {
+                                            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                            return@pointerInteropFilter true
+                                        }
+                                        if (newTaleTitle.isEmpty()) {
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    "Дайте название сказке",
+                                                    Toast.LENGTH_SHORT
+                                                )
+                                                .show()
+                                            return@pointerInteropFilter true
+                                        }
+                                        val fileName = newTaleTitle.ifEmpty {
+                                            "audio_${System.currentTimeMillis()}"
+                                        }
+
+                                        try {
+                                            audioRecorder.startRecording(fileName)
+                                        } catch (e: SecurityException) {
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    "Нет доступа к микрофону",
+                                                    Toast.LENGTH_SHORT
+                                                )
+                                                .show()
+                                        }
                                         true
                                     }
 

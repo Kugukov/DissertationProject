@@ -42,7 +42,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun LoadScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
     var delayValue: Long
-
+    /*TODO делей не норм*/
     delayValue = if (viewModel.isFirstLaunch.value) {
         3500
     } else {

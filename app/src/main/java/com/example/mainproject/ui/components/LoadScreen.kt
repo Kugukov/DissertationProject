@@ -1,5 +1,6 @@
 package com.example.mainproject.ui.components
 
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -49,7 +50,20 @@ fun LoadScreen(viewModel: MainViewModel, navController: NavHostController? = nul
         2000
     }
 
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
+        /* TODO Регистрация не при первом запуске */
+        viewModel.checkDeviceData(context) { exists ->
+            if (!exists) {
+                Log.d("DeviceCheck", "Устройство было НЕ зарегистрировано")
+                viewModel.registerDeviceData(
+                    context
+                )
+            } else {
+                Log.d("DeviceCheck", "Устройство зарегистрировано")
+            }
+        }
+
         delay(delayValue)
         navController?.navigate("homeScreen")
         viewModel.updateFirstLaunch()
@@ -88,7 +102,9 @@ fun LoadScreen(viewModel: MainViewModel, navController: NavHostController? = nul
     val lastCircle = circleValues.size - 1
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -112,12 +128,12 @@ fun LoadScreen(viewModel: MainViewModel, navController: NavHostController? = nul
             Spacer(modifier = Modifier.height(25.dp))
             Text(
                 text = "Первый вход без пароля.\n Родителю рекомендуется установить пароль в настройках!",
+                color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
                 fontSize = 24.sp,
                 modifier = Modifier
             )
         }
-
     }
 }
 
@@ -126,7 +142,7 @@ fun LoadScreen(viewModel: MainViewModel, navController: NavHostController? = nul
 fun LoadPreview() {
     val context = LocalContext.current
     val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
-    MainProjectTheme {
+    MainProjectTheme(darkTheme = true, dynamicColor = false) {
         LoadScreen(viewModel)
     }
 }

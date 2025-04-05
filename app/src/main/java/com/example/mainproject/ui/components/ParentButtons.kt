@@ -16,7 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 
@@ -34,12 +34,13 @@ fun ParentButtons(
         IconButton(
             onClick = {navController?.navigate(route) },
             colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
             modifier = Modifier
                 .clip(shape = CircleShape)
                 .weight(0.45f)
                 .aspectRatio(1f)
+                .shadow(6.dp, shape = CircleShape)
         ) {
             Icon(
                 imageVector = Icons.Default.Edit,
@@ -47,7 +48,7 @@ fun ParentButtons(
                 modifier = Modifier
                     .padding(8.dp)
                     .fillMaxSize(),
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
         Spacer(modifier = Modifier.weight(0.1f))
@@ -55,12 +56,13 @@ fun ParentButtons(
         IconButton(
             onClick = { doDelete() },
             colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.errorContainer
             ),
             modifier = Modifier
                 .clip(shape = CircleShape)
                 .weight(0.45f)
                 .aspectRatio(1f)
+                .shadow(6.dp, shape = CircleShape)
         ) {
             Icon(
                 imageVector = Icons.Default.Clear,
@@ -68,7 +70,7 @@ fun ParentButtons(
                 modifier = Modifier
                     .padding(8.dp)
                     .fillMaxSize(),
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onErrorContainer
             )
         }
     }

@@ -5,10 +5,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.MediaPlayer
 import android.net.Uri
 import android.provider.Settings
-import android.view.MotionEvent
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,30 +19,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,18 +45,23 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.mainproject.models.MyViewModelFactory
+import com.example.mainproject.ui.components.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
+import com.example.mainproject.utils.AudioPlayer
 import com.example.mainproject.utils.AudioRecorder
-import com.example.mainproject.viewmodel.MainViewModel
+import com.example.mainproject.utils.SaveAlert
+import com.example.mainproject.viewmodel.AudioViewModel
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
+fun CreateAudioTaleScreen(
+    audioViewModel: AudioViewModel,
+    navController: NavHostController? = null
+) {
     val context = LocalContext.current
+    val openDialog = remember { mutableStateOf(false) }
     val activity = context as Activity
-    var creatingTale: File? = null
+    var creatingTale by remember { mutableStateOf<File?>(null) }
     var taleTitle by remember { mutableStateOf("") }
     var taleDescription by remember { mutableStateOf("") }
     val maxTitleLength = 50
@@ -73,7 +69,36 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
     val isErrorTitle = taleTitle.length >= maxTitleLength
     val isErrorDescription = taleDescription.length >= maxDescriptionLength
     val audioRecorder = remember { AudioRecorder(context) }
+    var isRecording by remember { mutableStateOf(false) }
+    var buttonText by remember { mutableStateOf("Начать запись") }
 
+    val onSaveButton: () -> Unit = {
+        val uploadTale = creatingTale?.let {
+            AudioTale(
+                audioFile = it,
+                title = taleTitle,
+                description = taleDescription,
+                audioDuration = audioViewModel.getAudioDuration(it)
+            )
+        }
+        uploadTale?.let { tale ->
+            audioViewModel.uploadAudioData(context, tale)
+        }
+
+        audioViewModel.fetchAudioTales(context)
+        navController?.popBackStack()
+    }
+
+    val onCancelButton: () -> Unit = {
+        navController?.popBackStack()
+        openDialog.value = false
+    }
+
+    val onDismissButton: () -> Unit = {
+        openDialog.value = false
+    }
+
+    // Запрос на доступ к микрофону
     val requestPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (!isGranted) {
@@ -98,31 +123,19 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(text = "Create Screen")
+            TopAppBar(
+                titleText = "Create Screen",
+                doNavigationIcon = {
+                    openDialog.value = true
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.Black
-                ),
-                navigationIcon = {
-                    IconButton(onClick = {
-                        /* TODO сохранение при выходе */
-                        navController?.popBackStack()
-                    }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Назад"
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxHeight(0.10f)
+                isOptionEnable = false,
+                navController
             )
         },
     ) { padding ->
+
         Card(
-            colors = CardDefaults.cardColors(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.75f)
@@ -139,6 +152,7 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                 Text(
                     text = "Новая сказка:",
                     fontSize = 25.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Left,
                     lineHeight = 30.sp,
@@ -157,12 +171,22 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                     placeholder = {
                         Text(
                             text = "Название",
-                            fontSize = 20.sp
+                            fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     },
                     singleLine = true,
                     isError = isErrorTitle,
-                    modifier = Modifier.weight(0.10f)
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        errorTextColor = MaterialTheme.colorScheme.error,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        errorBorderColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.weight(0.12f)
                 )
 
                 Spacer(modifier = Modifier.weight(0.05f))
@@ -170,17 +194,27 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                 OutlinedTextField(
                     value = taleDescription,
                     onValueChange = {
-                        if (it.length <= maxTitleLength) {
+                        if (it.length <= maxDescriptionLength) {
                             taleDescription = it
                         }
                     },
                     placeholder = {
                         Text(
                             text = "Краткое описание",
-                            fontSize = 20.sp
+                            fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     },
                     isError = isErrorDescription,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        errorTextColor = MaterialTheme.colorScheme.error,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        errorBorderColor = MaterialTheme.colorScheme.error
+                    ),
                     modifier = Modifier.weight(0.20f)
                 )
 
@@ -194,59 +228,57 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                     Button(
                         modifier = Modifier
                             .weight(0.475f)
-                            .fillMaxHeight()
-                            .pointerInteropFilter { motionEvent ->
-                                when (motionEvent.action) {
-                                    MotionEvent.ACTION_DOWN -> {
-                                        if (ContextCompat.checkSelfPermission(
-                                                context,
-                                                Manifest.permission.RECORD_AUDIO
-                                            ) != PackageManager.PERMISSION_GRANTED
-                                        ) {
-                                            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                            return@pointerInteropFilter true
-                                        }
-                                        if (taleTitle.isEmpty()) {
-                                            Toast
-                                                .makeText(
-                                                    context,
-                                                    "Дайте название сказке",
-                                                    Toast.LENGTH_SHORT
-                                                )
-                                                .show()
-                                            return@pointerInteropFilter true
-                                        }
-
-                                        val fileName = taleTitle.ifEmpty {
-                                            "audio_${System.currentTimeMillis()}"
-                                        }
-                                        try {
-                                            audioRecorder.startRecording(fileName)
-                                        } catch (e: SecurityException) {
-                                            Toast
-                                                .makeText(
-                                                    context,
-                                                    "Нет доступа к микрофону",
-                                                    Toast.LENGTH_SHORT
-                                                )
-                                                .show()
-                                        }
-
-                                        true
-                                    }
-
-                                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                                        creatingTale = audioRecorder.stopRecording()
-                                        true
-                                    }
-
-                                    else -> false
+                            .fillMaxHeight(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        onClick = {
+                            if (!isRecording) {
+                                // Начинало записи
+                                if (ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.RECORD_AUDIO
+                                    ) != PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    return@Button
                                 }
-                            },
-                        onClick = { }
+
+                                if (taleTitle.isEmpty()) {
+                                    Toast.makeText(
+                                        context,
+                                        "Дайте название сказке",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@Button
+                                }
+
+                                try {
+                                    audioRecorder.startRecording()
+                                    isRecording = true
+                                    buttonText = "Закончить запись"
+                                } catch (e: SecurityException) {
+                                    Toast.makeText(
+                                        context,
+                                        "Нет доступа к микрофону",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            } else {
+                                // Остановка записи
+                                try {
+                                    creatingTale = audioRecorder.stopRecording()
+                                    isRecording = false
+                                    buttonText = "Начать запись" // Изменяем текст обратно
+                                } catch (e: RuntimeException) {
+                                    Log.e("AudioRecorder", "Ошибка остановки записи: ${e.message}")
+                                }
+                            }
+                        }
                     ) {
                         Text(
-                            text = "Записать",
+                            text = buttonText,
                             fontSize = 18.sp,
                             textAlign = TextAlign.Center
                         )
@@ -258,13 +290,13 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                         modifier = Modifier
                             .weight(0.475f)
                             .fillMaxHeight(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
                         onClick = {
                             creatingTale?.let {
-                                MediaPlayer().apply {
-                                    setDataSource(creatingTale!!.absolutePath)
-                                    prepare()
-                                    start()
-                                }
+                                AudioPlayer.playAudio(creatingTale!!, context)
                             }
                         }
                     ) {
@@ -283,13 +315,42 @@ fun CreateAudioTaleScreen(viewModel: MainViewModel, navController: NavHostContro
                         .fillMaxHeight()
                         .fillMaxWidth()
                         .weight(0.15f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
                     onClick = {
-                        navController?.popBackStack()
+                        if (creatingTale != null) {
+                            if (taleTitle.isNotEmpty() && taleDescription.isNotEmpty()) {
+                                onSaveButton()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Дайте название сказке и дайте описание",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@Button
+                            }
+
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Запишите сказку",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+
                     }
                 ) { Text(text = "Сохранить", fontSize = 20.sp) }
             }
         }
     }
+    SaveAlert (
+        openDialog = openDialog.value,
+        onSave = onSaveButton,
+        onCancel = onCancelButton,
+        onDismiss = onDismissButton
+    )
 }
 
 /**
@@ -306,9 +367,8 @@ fun openAppSettings(context: Context) {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun CreatePreview() {
-    val context = LocalContext.current
-    val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val audioViewModel: AudioViewModel = viewModel()
     MainProjectTheme {
-        CreateAudioTaleScreen(viewModel = viewModel)
+        CreateAudioTaleScreen(audioViewModel = audioViewModel)
     }
 }

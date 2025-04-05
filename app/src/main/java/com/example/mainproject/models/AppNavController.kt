@@ -9,14 +9,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.mainproject.ui.components.audioTales.AudioScreen
-import com.example.mainproject.ui.components.textTales.CreateTextTaleScreen
-import com.example.mainproject.ui.components.textTales.EditTextTaleScreen
 import com.example.mainproject.ui.components.HomeScreen
 import com.example.mainproject.ui.components.LoadScreen
 import com.example.mainproject.ui.components.OptionScreen
+import com.example.mainproject.ui.components.audioTales.AudioScreen
 import com.example.mainproject.ui.components.audioTales.CreateAudioTaleScreen
 import com.example.mainproject.ui.components.audioTales.EditAudioTaleScreen
+import com.example.mainproject.ui.components.textTales.CreateTextTaleScreen
+import com.example.mainproject.ui.components.textTales.EditTextTaleScreen
 import com.example.mainproject.ui.components.textTales.TextScreen
 import com.example.mainproject.viewmodel.AudioViewModel
 import com.example.mainproject.viewmodel.MainViewModel
@@ -34,17 +34,42 @@ fun AppNavController(navController: NavHostController = rememberNavController())
         composable("audioScreen") { AudioScreen(viewModel, audioViewModel, navController) }
         composable("textScreen") { TextScreen(viewModel, navController) }
         composable("optionScreen") { OptionScreen(viewModel, navController) }
-        composable("createAudioTaleScreen") { CreateAudioTaleScreen(viewModel, navController) }
+        composable("createAudioTaleScreen") { CreateAudioTaleScreen(audioViewModel, navController) }
         composable("createTextTaleScreen") { CreateTextTaleScreen(viewModel, navController) }
-        composable("editTextTaleScreen/{taleId}",
-            arguments = listOf(navArgument("taleId") { type = NavType.IntType })
+        composable(
+            "editTextTaleScreen/{taleId}/{title}/{description}",
+            arguments = listOf(
+                navArgument("taleId") { type = NavType.IntType },
+                navArgument("title") { type = NavType.StringType },
+                navArgument("description") { type = NavType.StringType },
+            )
         ) { backStackEntry ->
             val taleId = backStackEntry.arguments?.getInt("taleId") ?: 0
-            EditTextTaleScreen(taleId, viewModel, navController) }
-        composable("editAudioTaleScreen/{audioTaleId}",
-            arguments = listOf(navArgument("audioTaleId") { type = NavType.IntType })
+            val title = backStackEntry.arguments?.getString("title") ?: ""
+            val description = backStackEntry.arguments?.getString("description") ?: ""
+            EditTextTaleScreen(taleId, title, description, viewModel, navController)
+        }
+        composable(
+            "editAudioTaleScreen/{audioTaleId}/{title}/{description}/{fileUrl}",
+            arguments = listOf(
+                navArgument("audioTaleId") { type = NavType.IntType },
+                navArgument("title") { type = NavType.StringType },
+                navArgument("description") { type = NavType.StringType },
+                navArgument("fileUrl") { type = NavType.StringType },
+            )
         ) { backStackEntry ->
             val audioTaleId = backStackEntry.arguments?.getInt("audioTaleId") ?: 0
-            EditAudioTaleScreen(audioTaleId, audioViewModel, navController) }
+            val title = backStackEntry.arguments?.getString("title") ?: ""
+            val description = backStackEntry.arguments?.getString("description") ?: ""
+            val fileUrl = backStackEntry.arguments?.getString("fileUrl") ?: ""
+            EditAudioTaleScreen(
+                audioTaleId,
+                title,
+                description,
+                fileUrl,
+                audioViewModel,
+                navController
+            )
+        }
     }
 }

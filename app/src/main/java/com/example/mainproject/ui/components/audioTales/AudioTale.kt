@@ -1,13 +1,10 @@
 package com.example.mainproject.ui.components.audioTales
 
-import androidx.compose.runtime.MutableState
 import java.io.File
 
 data class AudioTale(
-    val audioTaleId: Int,
-    val title: MutableState<String>,
-    val description: MutableState<String>,
+    val title: String,
+    val description: String,
     val audioFile: File,
-    val audioDuration: MutableState<String>
-    /* TODO время создания */
+    val audioDuration: String
 )

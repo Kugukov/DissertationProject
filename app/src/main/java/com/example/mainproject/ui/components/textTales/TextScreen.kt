@@ -1,144 +1,71 @@
 package com.example.mainproject.ui.components.textTales
 
 import android.util.Log
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
+import com.example.mainproject.ui.components.BottomAppBar
 import com.example.mainproject.ui.components.CardItem
 import com.example.mainproject.ui.components.ChildButtons
 import com.example.mainproject.ui.components.ParentButtons
+import com.example.mainproject.ui.components.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.viewmodel.MainViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
+    val context = LocalContext.current
+
+    LaunchedEffect(viewModel) {
+        viewModel.fetchTextTales(context)
+    }
+
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(text = "Text Screen")
+            TopAppBar(
+                titleText = "Text Screen",
+                doNavigationIcon = {
+                    navController?.navigate("homeScreen")
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.Black
-                ),
-                actions = {
-                    IconButton(onClick = { navController?.navigate("optionScreen") }) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxHeight(0.10f)
+                isOptionEnable = true,
+                navController
             )
         },
         bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.25f)
-                    .background(Color.White.copy(alpha = 0.6f))
-            )
-            {
-                BottomAppBar(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(),
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
-                ) {
-                    Spacer(modifier = Modifier.weight(0.3f))
-
-                    FloatingActionButton(
-                        onClick = { navController?.navigate("audioScreen") },
-                        shape = CircleShape,
-                        modifier = Modifier.padding(top = 30.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Mic,
-                            contentDescription = "Home"
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(0.2f))
-
-                    FloatingActionButton(
-                        onClick = { navController?.navigate("createTextTaleScreen") },
-                        shape = CircleShape,
-                        modifier = Modifier
-                            .padding(bottom = 30.dp)
-                            .size(85.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add",
-                            modifier = Modifier.size(50.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(0.2f))
-
-                    FloatingActionButton(
-                        onClick = { navController?.navigate("textScreen") },
-                        shape = CircleShape,
-                        modifier = Modifier.padding(top = 30.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.TextFields,
-                            tint = Color.Magenta,
-                            contentDescription = "Search"
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(0.3f))
+            BottomAppBar(
+                audioButtonColor = MaterialTheme.colorScheme.onSurface,
+                textButtonColor = MaterialTheme.colorScheme.secondary,
+                doClickMic = {
+                    navController?.navigate("audioScreen")
+                },
+                doClickAdd = {
+                    navController?.navigate("createTextTaleScreen")
+                },
+                doClickText = {
+                    navController?.navigate("textScreen")
                 }
-            }
+            )
         }
     ) { padding ->
-        val cards = viewModel.textTalesList
+        val cards by viewModel.textTalesList.collectAsState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -153,78 +80,44 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                     .padding(top = 40.dp)
             ) {
                 items(cards) { card ->
-                    if (viewModel.isParent.value) {
-                        CardItem(
-                            taleName = card.title.value,
-                            taleDescription = card.description.value,
-                            cardButtons = { modifier ->
-                                val cardId = card.textTaleId
+//                    if (viewModel.isParent.value) {
+                    CardItem(
+                        taleName = card.title,
+                        taleDescription = card.description,
+                        cardButtons = { modifier ->
+                            val cardId = card.id
+                            if (viewModel.isParent.value) {
                                 ParentButtons(
-                                    "editTextTaleScreen/${cardId}",
-                                    { viewModel.deleteOneOfTextTalesList(cardId) },
+                                    "editTextTaleScreen/${cardId}/${card.title}/${card.description}",
+                                    {
+                                        viewModel.deleteTextTale(context, cardId!!)
+                                    },
                                     navController,
                                     modifier.weight(0.25f)
                                 )
-                                Log.d("CardItemId", card.textTaleId.toString())
-                            }
-                        ) { Log.d("CardItem", "Click") }
-                    } else {
-                        CardItem(
-                            taleName = card.title.value,
-                            taleDescription = card.description.value,
-                            cardButtons = { modifier ->
-                                val cardId = card.textTaleId
+                            } else {
                                 ChildButtons(
-                                    "",
                                     Icons.AutoMirrored.Filled.Message,
                                     { },
-                                    navController,
                                     modifier.weight(0.125f)
                                 )
                             }
-                        ) { Log.d("CardItem", "Click") }
-                    }
 
+                            Log.d("CardItemId", card.id.toString())
+                        }
+                    ) { Log.d("CardItem", "Click") }
                 }
             }
         }
     }
 }
 
-//@Composable
-//fun ChildButtons(modifier: Modifier = Modifier) {
-//    Row(
-//        modifier = modifier
-//    ) {
-//        IconButton(
-//            onClick = {/* TODO */ },
-//            colors = IconButtonDefaults.iconButtonColors(
-//                containerColor = MaterialTheme.colorScheme.primary
-//            ),
-//            modifier = Modifier
-//                .clip(shape = CircleShape)
-//                .aspectRatio(1f)
-//        ) {
-//            Icon(
-//                imageVector = Icons.Default.PlayArrow,
-//                contentDescription = "Фоновое изображение",
-//                modifier = Modifier
-//                    .padding(8.dp)
-//                    .fillMaxSize(),
-//                tint = Color.White
-//            )
-//        }
-//
-//    }
-//
-//}
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun TextPreview() {
     val context = LocalContext.current
     val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
-    MainProjectTheme {
+    MainProjectTheme(darkTheme = true, dynamicColor = false) {
         TextScreen(viewModel = viewModel)
     }
 }

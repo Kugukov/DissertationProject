@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -33,10 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -72,7 +71,7 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxSize()
-            .background(colorResource(id = R.color.aquamarine))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -93,9 +92,9 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                     .then(
                         if (!isPasswordEnable) Modifier.border(
                             5.dp,
-                            Color.Green,
+                            MaterialTheme.colorScheme.primary,
                             shape = CircleShape
-                        ) else Modifier.border(0.dp, Color.Green)
+                        ) else Modifier.border(1.dp, MaterialTheme.colorScheme.secondary)
                     )
             ) {
                 if (childImage != null) {
@@ -117,6 +116,7 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
 
             Text(
                 text = "Children",
+                color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .weight(0.025f)
@@ -134,9 +134,9 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                     .then(
                         if (isPasswordEnable) Modifier.border(
                             5.dp,
-                            Color.Green,
+                            MaterialTheme.colorScheme.primary,
                             shape = CircleShape
-                        ) else Modifier.border(0.dp, Color.Green)
+                        ) else Modifier.border(1.dp, MaterialTheme.colorScheme.secondary)
                     )
             ) {
                 if (parentImage == null) {
@@ -158,6 +158,7 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
 
             Text(
                 text = "Parent",
+                color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .weight(0.025f)
@@ -178,13 +179,15 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
             ) {
                 OutlinedTextField(
                     value = viewModel.passwordValue.value,
-                    label = { Text("Password") },
+                    label = { Text("Password", color = MaterialTheme.colorScheme.onBackground) },
                     onValueChange = { newPassword ->
                         viewModel.updatePasswordValue(newPassword)
                     },
                     colors = OutlinedTextFieldDefaults.colors(
-                        disabledContainerColor = Color(0xFF6650a4),
-                        unfocusedContainerColor = Color(0xFF445e91),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        cursorColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     visualTransformation = PasswordVisualTransformation()
@@ -218,7 +221,8 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                     .clip(shape = CircleShape)
                     .weight(0.05f)
             ) {
-                Text(text = "Sign in")
+                Text(text = "Sign in",
+                    color = MaterialTheme.colorScheme.onPrimary)
             }
         }
 
@@ -233,7 +237,7 @@ fun GreetingPreview() {
     val context = LocalContext.current
     val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     val navController = rememberNavController()
-    MainProjectTheme {
+    MainProjectTheme(darkTheme = false, dynamicColor = false) {
         HomeScreen(viewModel = viewModel, navController = navController)
     }
 }

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +27,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.mainproject.R
+import com.example.mainproject.ui.components.screensParts.ChildButtons
 import com.example.mainproject.ui.theme.MainProjectTheme
+import com.example.mainproject.utils.AudioPlayer
 
 @Composable
 fun CardItem(
@@ -34,7 +38,6 @@ fun CardItem(
     cardButtons: @Composable (Modifier) -> Unit,
     doClick: () -> Unit
 ) {
-    /* TODO клик на карточку*/
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -85,13 +88,22 @@ fun CardItem(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun CardItemPreview() {
-    MainProjectTheme(darkTheme = true, dynamicColor = false) {
-        CardItem("Название 1",
-            "Описание 1",
-            { Text("1") })
-        { Log.d("CardItem", "check") }
-    }
-}
+//@Preview(showBackground = true, showSystemUi = true)
+//@Composable
+//fun CardItemPreview() {
+//    MainProjectTheme(darkTheme = false, dynamicColor = false) {
+//        CardItem(
+//            "Название 1",
+//            "Описание 1",
+//            cardButtons = { modifier ->
+//             ChildButtons(
+//                Icons.Default.PlayArrow,
+//                 false,
+//                {  },
+//                { AudioPlayer.stopAudio() },
+//                 {},
+//                 modifier)
+//            })
+//        { Log.d("CardItem", "check") }
+//    }
+//}

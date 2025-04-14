@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,11 +46,15 @@ import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.mainproject.R
 import com.example.mainproject.models.MyViewModelFactory
+import com.example.mainproject.ui.components.screensParts.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.viewmodel.MainViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OptionScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
+fun OptionScreen(mainViewModel: MainViewModel, navController: NavHostController? = null) {
+    /* TODO возможность работы с запрещенными словами */
+
     var passwordCurrentInput by remember { mutableStateOf("") }
     var currentSelection by remember { mutableStateOf("first") }
 
@@ -81,10 +86,10 @@ fun OptionScreen(viewModel: MainViewModel, navController: NavHostController? = n
     }
 
     LaunchedEffect(Unit) {
-        viewModel.loadImage(context, "saved_child_image.jpg")
-        viewModel.loadImage(context, "saved_parent_image.jpg")
-        childImage = viewModel.childImage
-        parentImage = viewModel.parentImage
+        mainViewModel.loadImage(context, "saved_child_image.jpg")
+        mainViewModel.loadImage(context, "saved_parent_image.jpg")
+        childImage = mainViewModel.childImage
+        parentImage = mainViewModel.parentImage
     }
 
     Scaffold(
@@ -95,6 +100,8 @@ fun OptionScreen(viewModel: MainViewModel, navController: NavHostController? = n
                     navController?.popBackStack()
                 },
                 isOptionEnable = false,
+                false,
+                null,
                 navController
             )
         },
@@ -233,17 +240,17 @@ fun OptionScreen(viewModel: MainViewModel, navController: NavHostController? = n
                             modifier = Modifier.fillMaxWidth(0.6f),
                             onClick = {
                                 if (passwordCurrentInput != "")
-                                    viewModel.updatePassword(passwordCurrentInput)
+                                    mainViewModel.updatePassword(passwordCurrentInput)
                                 if (childImageUri != null) {
                                     childImageUri?.let {
-                                        viewModel.saveImage(context, it, "saved_child_image.jpg")
-                                        childImage = viewModel.childImage
+                                        mainViewModel.saveImage(context, it, "saved_child_image.jpg")
+                                        childImage = mainViewModel.childImage
                                     }
                                 }
                                 if (parentImageUri != null) {
                                     parentImageUri?.let {
-                                        viewModel.saveImage(context, it, "saved_parent_image.jpg")
-                                        parentImage = viewModel.parentImage
+                                        mainViewModel.saveImage(context, it, "saved_parent_image.jpg")
+                                        parentImage = mainViewModel.parentImage
                                     }
                                 }
 
@@ -263,9 +270,9 @@ fun OptionScreen(viewModel: MainViewModel, navController: NavHostController? = n
 @Composable
 fun OptionPreview() {
     val context = LocalContext.current
-    val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
 
     MainProjectTheme(darkTheme = true, dynamicColor = false) {
-        OptionScreen(viewModel = viewModel)
+        OptionScreen(mainViewModel = mainViewModel)
     }
 }

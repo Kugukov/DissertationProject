@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,11 +41,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
-import com.example.mainproject.ui.components.TopAppBar
+import com.example.mainproject.ui.components.screensParts.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.utils.AudioPlayer
-import com.example.mainproject.utils.AudioRecorder
+import com.example.mainproject.utils.DangerTaleCheckAlert
 import com.example.mainproject.utils.SaveAlert
+import com.example.mainproject.utils.WAVAudioRecorder
 import com.example.mainproject.viewmodel.AudioViewModel
 import com.example.mainproject.viewmodel.MainViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -53,18 +55,21 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditAudioTaleScreen(
     audioTaleId: Int,
     title: String,
     description: String,
     fileUrl: String,
+    mainViewModel: MainViewModel,
     audioViewModel: AudioViewModel,
     navController: NavHostController? = null
 ) {
     val context = LocalContext.current
     val activity = context as Activity
-    val openDialog = remember { mutableStateOf(false) }
+    val openClosingDialog = remember { mutableStateOf(false) }
+    val openDangerCheckDialog = remember { mutableStateOf(false) }
 
     val file = File(
         context.getExternalFilesDir(Environment.DIRECTORY_MUSIC),
@@ -80,48 +85,77 @@ fun EditAudioTaleScreen(
     val maxDescriptionLength = 500
     val isErrorTitle = newTaleTitle.length >= maxTitleLength
     val isErrorDescription = newTaleDescription.length >= maxDescriptionLength
-    val audioRecorder = remember { AudioRecorder(context) }
+    val wavAudioRecorder = remember { WAVAudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
     var buttonText by remember { mutableStateOf("Начать запись") }
 
     val onSaveButton: () -> Unit = {
-        if (newAudioFile != file) {
+        if (newTaleTitle.isNotEmpty() && newTaleDescription.isNotEmpty()) {
+            openClosingDialog.value = false
+
+            /* TODO при изменении без сказки*/
+            newAudioFile?.let {
+                Log.d(
+                    "Update Audio with audio",
+                    "$newAudioFile, $newTaleTitle, $newTaleDescription"
+                )
+                openDangerCheckDialog.value = true
+                audioViewModel.updateAudioTale(
+                    context,
+                    taleId = audioTaleId,
+                    newTitle = newTaleTitle,
+                    newDescription = newTaleDescription,
+                    newAudioFile = newAudioFile,
+                    newAudioDuration = audioViewModel.getAudioDuration(newAudioFile!!)
+                )
+            } ?: run {
+                Log.d(
+                    "Update Audio without audio",
+                    "$newAudioFile, $newTaleTitle, $newTaleDescription"
+                )
+                audioViewModel.updateAudioTale(
+                    context,
+                    taleId = audioTaleId,
+                    newTitle = newTaleTitle,
+                    newDescription = newTaleDescription,
+                    newAudioFile = null,
+                    newAudioDuration = null
+                )
+                navController?.popBackStack()
+            }
+            audioViewModel.fetchAudioTales(context)
+        } else {
+            Toast.makeText(
+                context,
+                "Дайте название сказке и дайте описание",
+                Toast.LENGTH_SHORT
+            ).show()
+            openClosingDialog.value = false
+        }
+    }
+
+    SaveAlert(
+        openDialog = openClosingDialog.value,
+        onSave = onSaveButton,
+        onCancel = {
+            openClosingDialog.value = false
+            navController?.popBackStack()
+        }
+    )
+
+    DangerTaleCheckAlert(
+        audioViewModel = audioViewModel,
+        openDialog = openDangerCheckDialog.value,
+        onCloseWithSave = {
+            openDangerCheckDialog.value = false
             file.delete()
-        }
-        Log.d("Update Audio with audio", "wtf")
-        /* TODO при изменении без сказки*/
-        newAudioFile?.let {
-            Log.d("Update Audio with audio", "$newAudioFile, $newTaleTitle, $newTaleDescription")
-            audioViewModel.updateAudioTale(
-                taleId = audioTaleId,
-                newTitle = newTaleTitle,
-                newDescription = newTaleDescription,
-                newAudioFile = newAudioFile,
-                newAudioDuration = audioViewModel.getAudioDuration(newAudioFile!!)
-            )
-        } ?: run {
-            Log.d("Update Audio without audio", "$newAudioFile, $newTaleTitle, $newTaleDescription")
-            audioViewModel.updateAudioTale(
-                taleId = audioTaleId,
-                newTitle = newTaleTitle,
-                newDescription = newTaleDescription,
-                newAudioFile = null,
-                newAudioDuration = null
-            )
-        }
-
-        navController?.popBackStack()
-        audioViewModel.fetchAudioTales(context)
-    }
-
-    val onCancelButton: () -> Unit = {
-        navController?.popBackStack()
-        openDialog.value = false
-    }
-
-    val onDismissButton: () -> Unit = {
-        openDialog.value = false
-    }
+            navController?.popBackStack()
+        },
+        onCloseWithoutSave = {
+            openDangerCheckDialog.value = false
+            newAudioFile!!.delete()
+        },
+    )
 
     val requestPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -150,9 +184,12 @@ fun EditAudioTaleScreen(
             TopAppBar(
                 titleText = "Edit Screen",
                 doNavigationIcon = {
-                    openDialog.value = true
+                    if (newTaleTitle.isNotEmpty() && newTaleDescription.isNotEmpty())
+                        openClosingDialog.value = true
                 },
-                isOptionEnable = false,
+                isOptionEnable = mainViewModel.isParent.value,
+                false,
+                null,
                 navController
             )
         },
@@ -161,7 +198,7 @@ fun EditAudioTaleScreen(
             colors = CardDefaults.cardColors(),
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.75f)
+                .fillMaxHeight(0.8f)
                 .padding(padding)
                 .padding(16.dp)
         ) {
@@ -183,7 +220,6 @@ fun EditAudioTaleScreen(
 
                 Spacer(modifier = Modifier.width(20.dp))
 
-                /*TODO съело текст в placeholoder*/
                 OutlinedTextField(
                     value = newTaleTitle,
                     onValueChange = {
@@ -254,7 +290,7 @@ fun EditAudioTaleScreen(
                                 }
 
                                 try {
-                                    audioRecorder.startRecording()
+                                    wavAudioRecorder.startRecording()
                                     isRecording = true
                                     buttonText = "Стоп запись"
                                 } catch (e: SecurityException) {
@@ -270,7 +306,7 @@ fun EditAudioTaleScreen(
                                     // Удаление предыдущей перезаписи
                                     oldAudioFile?.delete()
                                     // Сохранение новой перезаписи
-                                    newAudioFile = audioRecorder.stopRecording()!!
+                                    newAudioFile = wavAudioRecorder.stopRecording()!!
                                     // Определение какую запись удалять при перезаписи
                                     oldAudioFile = newAudioFile
                                     isRecording = false
@@ -296,9 +332,11 @@ fun EditAudioTaleScreen(
                             .fillMaxHeight(),
                         onClick = {
                             if (newAudioFile != null) {
+//                                AudioPlayer.setAudioFile(newAudioFile!!)
                                 AudioPlayer.playAudio(newAudioFile!!, context)
                             } else {
                                 if (editingAudioFile.exists()) {
+//                                    AudioPlayer.setAudioFile(editingAudioFile)
                                     AudioPlayer.playAudio(editingAudioFile, context)
                                 } else {
                                     CoroutineScope(Dispatchers.IO).launch {
@@ -309,10 +347,8 @@ fun EditAudioTaleScreen(
                                             )
                                         withContext(Dispatchers.Main) {
                                             downloadedFile?.let {
-                                                AudioPlayer.playAudio(
-                                                    it,
-                                                    context
-                                                )
+//                                                AudioPlayer.setAudioFile(it)
+                                                AudioPlayer.playAudio(it, context)
                                             }
                                         }
                                     }
@@ -338,35 +374,21 @@ fun EditAudioTaleScreen(
                         .fillMaxWidth()
                         .weight(0.15f),
                     onClick = {
-                        if (newTaleTitle.isNotEmpty() && newTaleDescription.isNotEmpty()) {
-                            Log.d("Update Audio ", "$newTaleTitle и $newTaleDescription")
-                            onSaveButton()
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Дайте название сказке и дайте описание",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            return@Button
-                        }
+                        onSaveButton()
                     }
                 ) { Text(text = "Сохранить", fontSize = 20.sp) }
             }
         }
     }
-    SaveAlert (
-        openDialog = openDialog.value,
-        onSave = onSaveButton,
-        onCancel = onCancelButton,
-        onDismiss = onDismissButton
-    )
 }
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun EditPreview() {
+    val context = LocalContext.current
+    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     val audioViewModel: AudioViewModel = viewModel()
     MainProjectTheme {
-        EditAudioTaleScreen(1, "", "", "", audioViewModel)
+        EditAudioTaleScreen(1, "", "", "", mainViewModel, audioViewModel)
     }
 }

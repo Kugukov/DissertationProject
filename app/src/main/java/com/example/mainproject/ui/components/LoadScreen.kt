@@ -21,6 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,37 +39,45 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
 import com.example.mainproject.ui.theme.MainProjectTheme
+import com.example.mainproject.viewmodel.AudioViewModel
 import com.example.mainproject.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
 
 @Composable
-fun LoadScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
-    var delayValue: Long
-    /*TODO делей не норм*/
-    delayValue = if (viewModel.isFirstLaunch.value) {
-        3500
-    } else {
-        2000
-    }
+fun LoadScreen(mainViewModel: MainViewModel, audioViewModel: AudioViewModel, navController: NavHostController? = null) {
+    val fetchAudioSuccess by audioViewModel.fetchSuccess.collectAsState()
+    val checkDeviceDataSuccess by mainViewModel.checkDeviceDataSuccess.collectAsState()
 
     val context = LocalContext.current
+
     LaunchedEffect(Unit) {
-        /* TODO Регистрация не при первом запуске */
-        viewModel.checkDeviceData(context) { exists ->
+        // 1. Проверка регистрации
+        mainViewModel.checkDeviceData(context) { exists ->
             if (!exists) {
-                Log.d("DeviceCheck", "Устройство было НЕ зарегистрировано")
-                viewModel.registerDeviceData(
-                    context
-                )
+                Log.d("DeviceCheck", "Устройство НЕ зарегистрировано")
+                mainViewModel.registerDeviceData(context)
             } else {
                 Log.d("DeviceCheck", "Устройство зарегистрировано")
             }
         }
 
-        delay(delayValue)
+        // 2. Ждём результат проверки
+        while (!checkDeviceDataSuccess) {
+            delay(100) // ждём пока ViewModel обновит флаг
+        }
+
+        // 3. Загружаем данные
+        audioViewModel.fetchAudioTales(context)
+        mainViewModel.fetchTextTales(context)
+
+        // 4. Ждём загрузки аудиофайлов
+        while (!fetchAudioSuccess) {
+            delay(100)
+        }
+
+        // 5. Переход на главный экран
         navController?.navigate("homeScreen")
-        viewModel.updateFirstLaunch()
-        delayValue = 2000
+        mainViewModel.updateFirstLaunch()
     }
 
     val circleSize: Dp = 25.dp
@@ -124,7 +134,7 @@ fun LoadScreen(viewModel: MainViewModel, navController: NavHostController? = nul
             }
         }
 
-        if (viewModel.isFirstLaunch.value) {
+        if (mainViewModel.isFirstLaunch.value) {
             Spacer(modifier = Modifier.height(25.dp))
             Text(
                 text = "Первый вход без пароля.\n Родителю рекомендуется установить пароль в настройках!",
@@ -141,8 +151,9 @@ fun LoadScreen(viewModel: MainViewModel, navController: NavHostController? = nul
 @Composable
 fun LoadPreview() {
     val context = LocalContext.current
-    val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val audioViewModel: AudioViewModel = viewModel()
+    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     MainProjectTheme(darkTheme = true, dynamicColor = false) {
-        LoadScreen(viewModel)
+        LoadScreen(mainViewModel, audioViewModel)
     }
 }

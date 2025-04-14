@@ -19,7 +19,6 @@ class AudioRecorder(private val context: Context) {
         return sdf.format(Date(System.currentTimeMillis()))
     }
 
-    /* TODO Работа на старых версиях*/
     @SuppressLint("NewApi")
     fun startRecording() {
         val audioDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)

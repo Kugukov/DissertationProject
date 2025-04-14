@@ -23,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -45,21 +46,27 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.mainproject.ui.components.TopAppBar
+import com.example.mainproject.models.MyViewModelFactory
+import com.example.mainproject.ui.components.screensParts.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.utils.AudioPlayer
-import com.example.mainproject.utils.AudioRecorder
+import com.example.mainproject.utils.DangerTaleCheckAlert
 import com.example.mainproject.utils.SaveAlert
+import com.example.mainproject.utils.WAVAudioRecorder
 import com.example.mainproject.viewmodel.AudioViewModel
+import com.example.mainproject.viewmodel.MainViewModel
 import java.io.File
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateAudioTaleScreen(
+    mainViewModel: MainViewModel,
     audioViewModel: AudioViewModel,
     navController: NavHostController? = null
 ) {
     val context = LocalContext.current
-    val openDialog = remember { mutableStateOf(false) }
+    val openClosingDialog = remember { mutableStateOf(false) }
+    val openDangerCheckDialog = remember { mutableStateOf(false) }
     val activity = context as Activity
     var creatingTale by remember { mutableStateOf<File?>(null) }
     var taleTitle by remember { mutableStateOf("") }
@@ -68,35 +75,63 @@ fun CreateAudioTaleScreen(
     val maxDescriptionLength = 500
     val isErrorTitle = taleTitle.length >= maxTitleLength
     val isErrorDescription = taleDescription.length >= maxDescriptionLength
-    val audioRecorder = remember { AudioRecorder(context) }
+    val wavAudioRecorder = remember { WAVAudioRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
     var buttonText by remember { mutableStateOf("Начать запись") }
 
     val onSaveButton: () -> Unit = {
-        val uploadTale = creatingTale?.let {
-            AudioTale(
-                audioFile = it,
-                title = taleTitle,
-                description = taleDescription,
-                audioDuration = audioViewModel.getAudioDuration(it)
-            )
+        if (creatingTale != null) {
+            if (taleTitle.isNotEmpty() && taleDescription.isNotEmpty()) {
+                openClosingDialog.value = false
+                openDangerCheckDialog.value = true
+                val uploadTale =
+                    AudioTale(
+                        audioFile = creatingTale!!,
+                        title = taleTitle,
+                        description = taleDescription,
+                        audioDuration = audioViewModel.getAudioDuration(creatingTale!!)
+                    )
+                audioViewModel.uploadAudioData(context, uploadTale)
+            } else {
+                Toast.makeText(
+                    context,
+                    "Дайте название сказке и дайте описание",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } else {
+            Toast.makeText(
+                context,
+                "Запишите сказку",
+                Toast.LENGTH_LONG
+            ).show()
+            openClosingDialog.value = false
         }
-        uploadTale?.let { tale ->
-            audioViewModel.uploadAudioData(context, tale)
+    }
+
+    // Диалоговые окна
+    // При выходе из экрана
+    SaveAlert(
+        openDialog = openClosingDialog.value,
+        onSave = onSaveButton,
+        onCancel = {
+            openClosingDialog.value = false
+            navController?.popBackStack()
         }
-
-        audioViewModel.fetchAudioTales(context)
-        navController?.popBackStack()
-    }
-
-    val onCancelButton: () -> Unit = {
-        navController?.popBackStack()
-        openDialog.value = false
-    }
-
-    val onDismissButton: () -> Unit = {
-        openDialog.value = false
-    }
+    )
+    // При сохранении сказки
+    DangerTaleCheckAlert(
+        audioViewModel = audioViewModel,
+        openDialog = openDangerCheckDialog.value,
+        onCloseWithSave = {
+            openDangerCheckDialog.value = false
+            navController?.popBackStack()
+        },
+        onCloseWithoutSave = {
+            openDangerCheckDialog.value = false
+            creatingTale!!.delete()
+        },
+    )
 
     // Запрос на доступ к микрофону
     val requestPermissionLauncher =
@@ -126,9 +161,12 @@ fun CreateAudioTaleScreen(
             TopAppBar(
                 titleText = "Create Screen",
                 doNavigationIcon = {
-                    openDialog.value = true
+                    if (taleTitle.isNotEmpty() && taleDescription.isNotEmpty())
+                        openClosingDialog.value = true
                 },
-                isOptionEnable = false,
+                isOptionEnable = mainViewModel.isParent.value,
+                false,
+                null,
                 navController
             )
         },
@@ -138,7 +176,7 @@ fun CreateAudioTaleScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.75f)
+                .fillMaxHeight(0.8f)
                 .padding(padding)
                 .padding(16.dp)
         ) {
@@ -255,7 +293,7 @@ fun CreateAudioTaleScreen(
                                 }
 
                                 try {
-                                    audioRecorder.startRecording()
+                                    wavAudioRecorder.startRecording()
                                     isRecording = true
                                     buttonText = "Закончить запись"
                                 } catch (e: SecurityException) {
@@ -268,7 +306,7 @@ fun CreateAudioTaleScreen(
                             } else {
                                 // Остановка записи
                                 try {
-                                    creatingTale = audioRecorder.stopRecording()
+                                    creatingTale = wavAudioRecorder.stopRecording()
                                     isRecording = false
                                     buttonText = "Начать запись" // Изменяем текст обратно
                                 } catch (e: RuntimeException) {
@@ -296,7 +334,7 @@ fun CreateAudioTaleScreen(
                         ),
                         onClick = {
                             creatingTale?.let {
-                                AudioPlayer.playAudio(creatingTale!!, context)
+                                AudioPlayer.playAudio(creatingTale!!,context)
                             }
                         }
                     ) {
@@ -320,37 +358,13 @@ fun CreateAudioTaleScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     onClick = {
-                        if (creatingTale != null) {
-                            if (taleTitle.isNotEmpty() && taleDescription.isNotEmpty()) {
-                                onSaveButton()
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Дайте название сказке и дайте описание",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                return@Button
-                            }
-
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Запишите сказку",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-
+                        onSaveButton()
                     }
                 ) { Text(text = "Сохранить", fontSize = 20.sp) }
             }
         }
     }
-    SaveAlert (
-        openDialog = openDialog.value,
-        onSave = onSaveButton,
-        onCancel = onCancelButton,
-        onDismiss = onDismissButton
-    )
+
 }
 
 /**
@@ -367,8 +381,10 @@ fun openAppSettings(context: Context) {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun CreatePreview() {
+    val context = LocalContext.current
+    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     val audioViewModel: AudioViewModel = viewModel()
     MainProjectTheme {
-        CreateAudioTaleScreen(audioViewModel = audioViewModel)
+        CreateAudioTaleScreen(mainViewModel, audioViewModel)
     }
 }

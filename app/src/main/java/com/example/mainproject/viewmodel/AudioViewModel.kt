@@ -5,6 +5,8 @@ import android.content.Context
 import android.media.MediaPlayer
 import android.os.Environment
 import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mainproject.ui.components.audioTales.AudioTale
@@ -24,8 +26,22 @@ import java.io.File
 
 class AudioViewModel : ViewModel() {
     private val apiService = ApiConfig.createApiService()
+
+    private val _fetchSuccess = MutableStateFlow(false)
+    val fetchSuccess: StateFlow<Boolean> = _fetchSuccess
+
+    private val _isDangerous = MutableLiveData<Boolean?>().apply { value = null }
+    val isDangerous: LiveData<Boolean?> get() = _isDangerous
+    private val _dangerousWords = MutableLiveData<List<String>?>().apply { value = null }
+    val dangerousWords: LiveData<List<String>?> get() = _dangerousWords
+
     private val _audioTalesDB = MutableStateFlow<List<AudioTaleDB>>(emptyList())
     val audioTalesDB: StateFlow<List<AudioTaleDB>> = _audioTalesDB.asStateFlow()
+
+    fun updateDangerStatus(isDangerous: Boolean?, dangerousWords: List<String>?) {
+        _isDangerous.value = isDangerous
+        _dangerousWords.value = dangerousWords
+    }
 
     fun fetchAudioTales(context: Context) {
         viewModelScope.launch {
@@ -33,10 +49,14 @@ class AudioViewModel : ViewModel() {
                 val getDeviceId = DeviceInfo.getDeviceInfo(context)["device_id"]
                 val audioFiles = apiService.getAudioTales(getDeviceId!!)
                 if (audioFiles.isSuccessful) {
+                    _fetchSuccess.value = true
                     _audioTalesDB.value = audioFiles.body() ?: emptyList()
+                    Log.d("fetch Audio Card: ", "${audioFiles.body()}")
                 }
+
             } catch (e: Exception) {
                 Log.e("Error", "Ошибка получения файлов: ${e.message}")
+                _fetchSuccess.value = false
             }
         }
     }
@@ -62,12 +82,26 @@ class AudioViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val responseBody = service.uploadAudioTale(deviceIdBody, metadataBody, filePart)
-                val response = responseBody.string()
-                fetchAudioTales(context)
-                Log.d("Upload", "Файл успешно отправлен, ответ сервера: $response")
+                val response = service.uploadAudioTale(deviceIdBody, metadataBody, filePart)
+                if (response.isSuccessful) {
+                    val isDangerous = response.body()?.get("dangerous") as Boolean
+                    if (isDangerous) {
+                        val dangerWords = response.body()?.get("danger_words") as? List<String>?
+                        updateDangerStatus(true, dangerWords)
+                        val taleId = response.body()?.get("tale_id") as? Int
+                        Log.d("Upload AudioTale", "tale_id: ${response.body()?.get("tale_id")}")
+                        Log.d("Upload AudioTale", "Upload is Dangerous. Danger words: $dangerWords")
+                        deleteAudioTale(context, taleId!!)
+                    } else {
+                        updateDangerStatus(false, null)
+                        Log.e("Upload AudioTale", "Upload is Safe")
+                    }
+                    fetchAudioTales(context)
+                    Log.d("Upload AudioTale", "Файл успешно отправлен, ответ сервера: $response")
+                }
+
             } catch (e: Exception) {
-                Log.e("Upload", "Ошибка: ${e.message}")
+                Log.e("Upload AudioTale", "Ошибка: ${e.message}")
             }
         }
     }
@@ -112,6 +146,7 @@ class AudioViewModel : ViewModel() {
     }
 
     fun updateAudioTale(
+        context: Context,
         taleId: Int,
         newTitle: String,
         newDescription: String,
@@ -132,6 +167,7 @@ class AudioViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
+                Log.d("Update AudioTale response", " $taleId, $newTitle, $newDescription, $newAudioDuration, $newAudioFile")
                 val response = apiService.updateAudioTale(
                     taleId,
                     titleBody,
@@ -140,12 +176,23 @@ class AudioViewModel : ViewModel() {
                     filePart
                 )
                 if (response.isSuccessful) {
-                    Log.d("Update", "Сказка успешно обновлена")
+                    val isDangerous = response.body()?.get("dangerous") as Boolean
+                    if (isDangerous) {
+                        val dangerWords = response.body()?.get("danger_words") as? List<String>?
+                        updateDangerStatus(true, dangerWords)
+                        Log.d("Update AudioTale", "Upload is Dangerous. Danger words: $dangerWords")
+                        deleteAudioTale(context, taleId)
+                    } else {
+                        updateDangerStatus(false, null)
+                        Log.d("Update AudioTale", "Сказка успешно обновлена")
+                    }
+                    fetchAudioTales(context)
+                    Log.d("Update AudioTale", "Файл успешно отправлен, ответ сервера: $response")
                 } else {
-                    Log.e("Update", "Ошибка обновления: ${response.errorBody()?.string()}")
+                    Log.e("Update AudioTale", "Ошибка обновления: ${response.errorBody()?.string()}")
                 }
             } catch (e: Exception) {
-                Log.e("Update", "Ошибка: ${e.message}")
+                Log.e("Update AudioTale", "Ошибка: ${e.message}")
             }
         }
     }

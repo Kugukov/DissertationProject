@@ -33,7 +33,7 @@ interface ApiService {
         @Part("device_id") deviceId: RequestBody,
         @Part("metadata") metadata: RequestBody,
         @Part file: MultipartBody.Part
-    ): ResponseBody
+    ): Response<Map<String, Any>>
 
     @GET("audioTales/{device_id}")
     suspend fun getAudioTales(@Path("device_id") deviceId: String): Response<List<AudioTaleDB>>
@@ -53,7 +53,7 @@ interface ApiService {
         @Part("description") description: RequestBody,
         @Part("duration") audioDuration: RequestBody?,
         @Part file: MultipartBody.Part?
-    ): Response<ResponseBody>
+    ): Response<Map<String, Any>>
 
     /* Текстовые сказки */
     @GET("textTales/{device_id}")

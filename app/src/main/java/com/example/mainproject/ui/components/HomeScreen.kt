@@ -2,6 +2,8 @@ package com.example.mainproject.ui.components
 
 import android.graphics.Bitmap
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,10 +50,11 @@ import androidx.navigation.compose.rememberNavController
 import com.example.mainproject.R
 import com.example.mainproject.models.MyViewModelFactory
 import com.example.mainproject.ui.theme.MainProjectTheme
+import com.example.mainproject.utils.ExitAlert
 import com.example.mainproject.viewmodel.MainViewModel
 
 @Composable
-fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
+fun HomeScreen(mainViewModel: MainViewModel, navController: NavHostController? = null) {
 
     var isPasswordEnable by remember { mutableStateOf(true) }
     val context = LocalContext.current
@@ -60,10 +63,27 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
     var parentImage by remember { mutableStateOf<Bitmap?>(null) }
 
     LaunchedEffect(Unit) {
-        viewModel.loadImage(context, "saved_child_image.jpg")
-        viewModel.loadImage(context, "saved_parent_image.jpg")
-        childImage = viewModel.childImage
-        parentImage = viewModel.parentImage
+        mainViewModel.loadImage(context, "saved_child_image.jpg")
+        mainViewModel.loadImage(context, "saved_parent_image.jpg")
+        childImage = mainViewModel.childImage
+        parentImage = mainViewModel.parentImage
+    }
+
+    var showExitDialog by remember { mutableStateOf(false) }
+    if (showExitDialog)
+        ExitAlert(
+            text = "Вы действительно хотите выйти из приложения?",
+            onExit = {
+                showExitDialog = false
+                (context as? ComponentActivity)?.finish()
+            },
+            onCancelAlert = {
+                showExitDialog = false
+            }
+        )
+
+    BackHandler {
+        showExitDialog = true
     }
 
     Column(
@@ -82,7 +102,7 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
             IconButton(
                 onClick = {
                     isPasswordEnable = false
-                    viewModel.updateIsParent(false)
+                    mainViewModel.updateIsParent(false)
                 },
                 modifier = Modifier
                     .clip(shape = CircleShape)
@@ -124,7 +144,7 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
 
             IconButton(
                 onClick = {
-                    viewModel.updateIsParent(true)
+                    mainViewModel.updateIsParent(true)
                     isPasswordEnable = true
                 },
                 modifier = Modifier
@@ -178,10 +198,10 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                 exit = fadeOut() + slideOutVertically(),
             ) {
                 OutlinedTextField(
-                    value = viewModel.passwordValue.value,
+                    value = mainViewModel.passwordValue.value,
                     label = { Text("Password", color = MaterialTheme.colorScheme.onBackground) },
                     onValueChange = { newPassword ->
-                        viewModel.updatePasswordValue(newPassword)
+                        mainViewModel.updatePasswordValue(newPassword)
                     },
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -206,7 +226,7 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
             Button(
                 onClick = {
                     if (isPasswordEnable) {
-                        if (viewModel.passwordValue.value == viewModel.password.value) {
+                        if (mainViewModel.passwordValue.value == mainViewModel.password.value) {
                             navController?.navigate("audioScreen")
                         } else {
                             Toast.makeText(context, "False password", Toast.LENGTH_SHORT).show()
@@ -235,9 +255,9 @@ fun HomeScreen(viewModel: MainViewModel, navController: NavHostController? = nul
 @Composable
 fun GreetingPreview() {
     val context = LocalContext.current
-    val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     val navController = rememberNavController()
     MainProjectTheme(darkTheme = false, dynamicColor = false) {
-        HomeScreen(viewModel = viewModel, navController = navController)
+        HomeScreen(mainViewModel = mainViewModel, navController = navController)
     }
 }

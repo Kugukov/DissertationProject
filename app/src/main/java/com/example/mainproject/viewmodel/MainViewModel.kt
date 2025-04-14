@@ -30,6 +30,9 @@ class MainViewModel(
 
     private val apiService = ApiConfig.createApiService()
 
+    private val _checkDeviceDataSuccess = MutableStateFlow(false)
+    val checkDeviceDataSuccess: StateFlow<Boolean> = _checkDeviceDataSuccess
+
     /* Первый запуск */
     private var _isFirstLaunch = mutableStateOf(true)
     val isFirstLaunch: State<Boolean> = _isFirstLaunch
@@ -84,6 +87,7 @@ class MainViewModel(
                 val response: Response<ApiService.DeviceResponse> = apiService.checkRegisterDevice(deviceInfo!!)
                 if (response.isSuccessful) {
                     val exists = response.body()?.exists ?: false
+                    _checkDeviceDataSuccess.value = exists
                     callback(exists)
                     Log.d("register", "register done: $exists")
                 } else {
@@ -105,6 +109,7 @@ class MainViewModel(
                 val deviceInfo = DeviceInfo.getDeviceInfo(context)
                 val response = apiService.registerDevice(deviceInfo)
                 if (response.isSuccessful) {
+                    _checkDeviceDataSuccess.value = true
                     Log.d("register", "register done")
                 } else {
                     Log.e("register", "Ошибка загрузки: ${response.errorBody()?.string()}")
@@ -126,6 +131,7 @@ class MainViewModel(
             try {
                 val response = apiService.uploadTextTale(deviceIdBody, titleBody, descriptionBody)
                 if (response.isSuccessful) {
+                    fetchTextTales(context)
                     Log.d("Upload TextTale", "Сказка успешно загружена")
                 } else {
                     Log.e("Upload TextTale", "Ошибка загрузки: ${response.errorBody()?.string()}")
@@ -141,6 +147,7 @@ class MainViewModel(
             try {
                 val response = apiService.deleteTextTale(taleId)
                 if (response.isSuccessful) {
+                    fetchTextTales(context)
                     Log.d("Delete", "Файл успешно удален")
                 }
                 fetchTextTales(context)

@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -32,17 +33,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
-import com.example.mainproject.ui.components.TopAppBar
+import com.example.mainproject.ui.components.screensParts.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.utils.SaveAlert
 import com.example.mainproject.viewmodel.MainViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTextTaleScreen(
     taleId: Int,
     title: String,
     description: String,
-    viewModel: MainViewModel,
+    mainViewModel: MainViewModel,
     navController: NavHostController? = null
 ) {
     val context = LocalContext.current
@@ -55,32 +57,44 @@ fun EditTextTaleScreen(
     val isErrorDescription = newTaleDescription.length >= maxDescriptionLength
 
     val onSaveButton: () -> Unit = {
-        viewModel.updateTextTale(
-            taleId,
-            newTaleTitle,
-            newTaleDescription
-        )
-        viewModel.fetchTextTales(context)
-        navController?.popBackStack()
+        if (newTaleTitle.isNotEmpty() && newTaleDescription.isNotEmpty()) {
+            mainViewModel.updateTextTale(
+                taleId,
+                newTaleTitle,
+                newTaleDescription
+            )
+            mainViewModel.fetchTextTales(context)
+            navController?.popBackStack()
+        } else {
+            Toast.makeText(
+                context,
+                "Дайте название сказке и напишите её",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
-    val onCancelButton: () -> Unit = {
-        navController?.popBackStack()
-        openDialog.value = false
-    }
-
-    val onDismissButton: () -> Unit = {
-        openDialog.value = false
-    }
+    SaveAlert (
+        openDialog = openDialog.value,
+        onSave = onSaveButton,
+        onCancel = {
+            openDialog.value = false
+            navController?.popBackStack()
+        }
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
                 titleText = "Edit Screen",
                 doNavigationIcon = {
-                    openDialog.value = true
+                    if (newTaleTitle.isNotEmpty() && newTaleDescription.isNotEmpty()) {
+                        openDialog.value = true
+                    }
                 },
-                isOptionEnable = false,
+                isOptionEnable = mainViewModel.isParent.value,
+                false,
+                null,
                 navController
             )
         },
@@ -185,37 +199,21 @@ fun EditTextTaleScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     onClick = {
-                        if (newTaleTitle.isNotEmpty() && newTaleDescription.isNotEmpty()) {
-                            onSaveButton()
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Дайте название сказке и напишите её",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            return@Button
-                        }
-
+                        onSaveButton()
                     }
                 ) { Text(text = "Сохранить", fontSize = 20.sp) }
 
             }
         }
     }
-    SaveAlert (
-        openDialog = openDialog.value,
-        onSave = onSaveButton,
-        onCancel = onCancelButton,
-        onDismiss = onDismissButton
-    )
 }
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun EditPreview() {
     val context = LocalContext.current
-    val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     MainProjectTheme {
-        EditTextTaleScreen(1, "", "", viewModel = viewModel)
+        EditTextTaleScreen(1, "", "", mainViewModel = mainViewModel)
     }
 }

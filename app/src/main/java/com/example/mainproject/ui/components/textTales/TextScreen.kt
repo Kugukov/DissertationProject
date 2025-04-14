@@ -1,41 +1,60 @@
 package com.example.mainproject.ui.components.textTales
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.mainproject.models.MyViewModelFactory
-import com.example.mainproject.ui.components.BottomAppBar
+import com.example.mainproject.ui.components.screensParts.BottomAppBar
 import com.example.mainproject.ui.components.CardItem
-import com.example.mainproject.ui.components.ChildButtons
-import com.example.mainproject.ui.components.ParentButtons
-import com.example.mainproject.ui.components.TopAppBar
+import com.example.mainproject.ui.components.screensParts.ChildButtons
+import com.example.mainproject.ui.components.screensParts.ParentButtons
+import com.example.mainproject.ui.components.screensParts.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
+import com.example.mainproject.utils.ExitAlert
 import com.example.mainproject.viewmodel.MainViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = null) {
+fun TextScreen(mainViewModel: MainViewModel, navController: NavHostController? = null) {
     val context = LocalContext.current
 
-    LaunchedEffect(viewModel) {
-        viewModel.fetchTextTales(context)
+    var showExitDialog by remember { mutableStateOf(false) }
+    if (showExitDialog)
+        ExitAlert(
+            text = "Вы действительно хотите выйти из аккаунта?",
+            onExit = {
+                showExitDialog = false
+                navController?.popBackStack("homeScreen", false)
+            },
+            onCancelAlert = {
+                showExitDialog = false
+            }
+        )
+
+    BackHandler {
+        showExitDialog = true
     }
 
     Scaffold(
@@ -43,9 +62,11 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
             TopAppBar(
                 titleText = "Text Screen",
                 doNavigationIcon = {
-                    navController?.navigate("homeScreen")
+                    navController?.popBackStack("homeScreen", false)
                 },
-                isOptionEnable = true,
+                isOptionEnable = mainViewModel.isParent.value,
+                true,
+                null,
                 navController
             )
         },
@@ -60,12 +81,20 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                     navController?.navigate("createTextTaleScreen")
                 },
                 doClickText = {
-                    navController?.navigate("textScreen")
+                    mainViewModel.fetchTextTales(context)
                 }
             )
+        },
+        modifier = Modifier.pointerInput(Unit) {
+            detectHorizontalDragGestures { _, dragAmount ->
+                if (dragAmount > 50) {
+                    // Свайп вправо
+                    navController?.navigate("audioScreen")
+                }
+            }
         }
     ) { padding ->
-        val cards by viewModel.textTalesList.collectAsState()
+        val cards by mainViewModel.textTalesList.collectAsState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -80,32 +109,30 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
                     .padding(top = 40.dp)
             ) {
                 items(cards) { card ->
-//                    if (viewModel.isParent.value) {
                     CardItem(
                         taleName = card.title,
                         taleDescription = card.description,
                         cardButtons = { modifier ->
                             val cardId = card.id
-                            if (viewModel.isParent.value) {
+                            if (mainViewModel.isParent.value) {
                                 ParentButtons(
                                     "editTextTaleScreen/${cardId}/${card.title}/${card.description}",
-                                    {
-                                        viewModel.deleteTextTale(context, cardId!!)
-                                    },
+                                    { mainViewModel.deleteTextTale(context, cardId!!) },
                                     navController,
                                     modifier.weight(0.25f)
                                 )
                             } else {
                                 ChildButtons(
-                                    Icons.AutoMirrored.Filled.Message,
-                                    { },
+                                    audioFile = null,
+                                    { navController?.navigate("readingScreen/${card.title}/${card.description}") },
+                                    context = context,
                                     modifier.weight(0.125f)
                                 )
                             }
 
                             Log.d("CardItemId", card.id.toString())
                         }
-                    ) { Log.d("CardItem", "Click") }
+                    ) { navController?.navigate("readingScreen/${card.title}/${card.description}") }
                 }
             }
         }
@@ -116,8 +143,8 @@ fun TextScreen(viewModel: MainViewModel, navController: NavHostController? = nul
 @Composable
 fun TextPreview() {
     val context = LocalContext.current
-    val viewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
     MainProjectTheme(darkTheme = true, dynamicColor = false) {
-        TextScreen(viewModel = viewModel)
+        TextScreen(mainViewModel = mainViewModel)
     }
 }

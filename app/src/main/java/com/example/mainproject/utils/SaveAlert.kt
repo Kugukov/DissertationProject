@@ -9,12 +9,12 @@ import androidx.compose.runtime.Composable
 fun SaveAlert(
     openDialog: Boolean,
     onSave: () -> Unit,
-    onCancel: () -> Unit,
-    onDismiss: () -> Unit
+    onCancel: () -> Unit
 ) {
+    /* TODO только при наличии данных */
     if (openDialog) {
         AlertDialog(
-            onDismissRequest = { onDismiss() }, // Закрытие при клике вне диалога
+            onDismissRequest = { onCancel() }, // Закрытие при клике вне диалога
             title = {
                 Text(text = "Сохранить сказку?")
             },
@@ -36,7 +36,7 @@ fun SaveAlert(
                         onCancel()
                     }
                 ) {
-                    Text("Отмена")
+                    Text("Нет")
                 }
             }
         )

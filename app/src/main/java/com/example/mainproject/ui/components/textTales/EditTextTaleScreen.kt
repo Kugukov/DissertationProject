@@ -7,17 +7,25 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,13 +38,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import com.example.mainproject.models.MyViewModelFactory
-import com.example.mainproject.ui.components.screensParts.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
-import com.example.mainproject.utils.SaveAlert
+import com.example.mainproject.utils.alerts.SaveWhenDoNavigationIconAlert
 import com.example.mainproject.viewmodel.MainViewModel
+import com.example.mainproject.viewmodel.TextViewModel
+import com.example.mainproject.viewmodel.UserRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,10 +53,13 @@ fun EditTextTaleScreen(
     title: String,
     description: String,
     mainViewModel: MainViewModel,
-    navController: NavHostController? = null
+    textViewModel: TextViewModel,
+    onNavigateBack: () -> Unit,
+    onNavigateToOptions: () -> Unit,
 ) {
     val context = LocalContext.current
-    val openDialog = remember { mutableStateOf(false) }
+    val userRole by mainViewModel.userRole.collectAsState()
+    val openNavigationIconDialog = remember { mutableStateOf(false) }
     var newTaleTitle by remember { mutableStateOf(title) }
     var newTaleDescription by remember { mutableStateOf(description) }
     val maxTitleLength = 50
@@ -58,13 +69,12 @@ fun EditTextTaleScreen(
 
     val onSaveButton: () -> Unit = {
         if (newTaleTitle.isNotEmpty() && newTaleDescription.isNotEmpty()) {
-            mainViewModel.updateTextTale(
+            textViewModel.updateTextTale(
                 taleId,
                 newTaleTitle,
                 newTaleDescription
             )
-            mainViewModel.fetchTextTales(context)
-            navController?.popBackStack()
+            onNavigateBack()
         } else {
             Toast.makeText(
                 context,
@@ -74,28 +84,60 @@ fun EditTextTaleScreen(
         }
     }
 
-    SaveAlert (
-        openDialog = openDialog.value,
+    SaveWhenDoNavigationIconAlert(
+        openDialog = openNavigationIconDialog.value,
         onSave = onSaveButton,
-        onCancel = {
-            openDialog.value = false
-            navController?.popBackStack()
+        onCancelWithoutSave = {
+            openNavigationIconDialog.value = false
+            onNavigateBack()
         }
     )
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                titleText = "Edit Screen",
-                doNavigationIcon = {
-                    if (newTaleTitle.isNotEmpty() && newTaleDescription.isNotEmpty()) {
-                        openDialog.value = true
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Изменение сказки",
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                navigationIcon = {
+                    IconButton(onClick = {
+                        if (newTaleTitle.isNotEmpty() && newTaleDescription.isNotEmpty()) {
+                            openNavigationIconDialog.value = true
+                        } else {
+                            onNavigateBack()
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Назад",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 },
-                isOptionEnable = mainViewModel.isParent.value,
-                false,
-                null,
-                navController
+                actions = {
+                    when (userRole) {
+                        UserRole.PARENT ->
+                            IconButton(
+                                onClick = onNavigateToOptions
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Настройки",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+
+                        UserRole.CHILD -> { }
+                    }
+                },
             )
         },
     ) { padding ->
@@ -211,9 +253,16 @@ fun EditTextTaleScreen(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun EditPreview() {
-    val context = LocalContext.current
-    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val textViewModel: TextViewModel = viewModel()
+    val mainViewModel: MainViewModel = hiltViewModel()
     MainProjectTheme {
-        EditTextTaleScreen(1, "", "", mainViewModel = mainViewModel)
+        EditTextTaleScreen(
+            taleId = 1,
+            title = "",
+            description = "",
+            mainViewModel = mainViewModel,
+            textViewModel = textViewModel,
+            onNavigateBack = {},
+            onNavigateToOptions = {})
     }
 }

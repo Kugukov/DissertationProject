@@ -2,8 +2,13 @@ package com.example.mainproject.models
 
 import android.content.Context
 import android.content.SharedPreferences
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 
-class SharedPreferencesManager(context: Context) {
+
+class SharedPreferencesManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
@@ -13,12 +18,5 @@ class SharedPreferencesManager(context: Context) {
 
     fun getPassword(): String {
         return sharedPreferences.getString("password_key", "") ?: "123"
-    }
-
-    fun disableFirstLaunch() {
-        sharedPreferences.edit().putBoolean("is_first_launch", false).apply()
-    }
-    fun getFirstLaunch(): Boolean {
-        return sharedPreferences.getBoolean("is_first_launch", true)
     }
 }

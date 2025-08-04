@@ -1,7 +1,7 @@
 package com.example.mainproject.network
 
-import com.example.mainproject.ui.components.audioTales.AudioTaleDB
-import com.example.mainproject.ui.components.textTales.TextTale
+import com.example.mainproject.models.AudioTaleDB
+import com.example.mainproject.models.TextTale
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody

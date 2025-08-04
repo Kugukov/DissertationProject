@@ -9,65 +9,107 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import com.example.mainproject.models.MyViewModelFactory
-import com.example.mainproject.ui.components.screensParts.BottomAppBar
 import com.example.mainproject.ui.components.CardItem
-import com.example.mainproject.ui.components.screensParts.ChildButtons
+import com.example.mainproject.ui.components.screensParts.BottomAppBar
+import com.example.mainproject.ui.components.screensParts.ChildButtonsTextTale
 import com.example.mainproject.ui.components.screensParts.ParentButtons
-import com.example.mainproject.ui.components.screensParts.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
-import com.example.mainproject.utils.ExitAlert
+import com.example.mainproject.utils.alerts.ExitAccountAlert
 import com.example.mainproject.viewmodel.MainViewModel
+import com.example.mainproject.viewmodel.TextViewModel
+import com.example.mainproject.viewmodel.UserRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TextScreen(mainViewModel: MainViewModel, navController: NavHostController? = null) {
-    val context = LocalContext.current
-
-    var showExitDialog by remember { mutableStateOf(false) }
-    if (showExitDialog)
-        ExitAlert(
-            text = "Вы действительно хотите выйти из аккаунта?",
+fun TextScreen(
+    mainViewModel: MainViewModel,
+    textViewModel: TextViewModel,
+    onNavigateToHome: () -> Unit,
+    onNavigateToOptions: () -> Unit,
+    onNavigateToAudio: () -> Unit,
+    onNavigateToCreateTextTale: () -> Unit,
+    onNavigateToEditTextTale: (taleId: Int, title: String, description: String) -> Unit,
+    onNavigateToRead: (title: String, description: String) -> Unit,
+) {
+    val userRole by mainViewModel.userRole.collectAsState()
+    val showExitAccountAlert by mainViewModel.showExitAccountAlert.collectAsState()
+    if (showExitAccountAlert)
+        ExitAccountAlert(
             onExit = {
-                showExitDialog = false
-                navController?.popBackStack("homeScreen", false)
+                mainViewModel.confirmExitAccountAlert(onNavigateToHome)
             },
             onCancelAlert = {
-                showExitDialog = false
+                mainViewModel.closeExitAccountAlert()
             }
         )
 
     BackHandler {
-        showExitDialog = true
+        mainViewModel.openExitAccountAlert()
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                titleText = "Text Screen",
-                doNavigationIcon = {
-                    navController?.popBackStack("homeScreen", false)
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Сказки",
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 },
-                isOptionEnable = mainViewModel.isParent.value,
-                true,
-                null,
-                navController
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                navigationIcon = {
+                    IconButton(onClick = {
+                        mainViewModel.openExitAccountAlert()
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Назад",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                actions = {
+                    when (userRole) {
+                        UserRole.PARENT ->
+                            IconButton(
+                                onClick = onNavigateToOptions
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Настройки",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+
+                        UserRole.CHILD -> {}
+                    }
+                },
             )
         },
         bottomBar = {
@@ -75,26 +117,25 @@ fun TextScreen(mainViewModel: MainViewModel, navController: NavHostController? =
                 audioButtonColor = MaterialTheme.colorScheme.onSurface,
                 textButtonColor = MaterialTheme.colorScheme.secondary,
                 doClickMic = {
-                    navController?.navigate("audioScreen")
+                    onNavigateToAudio()
                 },
                 doClickAdd = {
-                    navController?.navigate("createTextTaleScreen")
+                    onNavigateToCreateTextTale()
                 },
                 doClickText = {
-                    mainViewModel.fetchTextTales(context)
+                    textViewModel.fetchTextTales()
                 }
             )
         },
         modifier = Modifier.pointerInput(Unit) {
             detectHorizontalDragGestures { _, dragAmount ->
                 if (dragAmount > 50) {
-                    // Свайп вправо
-                    navController?.navigate("audioScreen")
+                    onNavigateToAudio()
                 }
             }
         }
     ) { padding ->
-        val cards by mainViewModel.textTalesList.collectAsState()
+        val cards by textViewModel.textTalesList.collectAsState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -114,25 +155,38 @@ fun TextScreen(mainViewModel: MainViewModel, navController: NavHostController? =
                         taleDescription = card.description,
                         cardButtons = { modifier ->
                             val cardId = card.id
-                            if (mainViewModel.isParent.value) {
-                                ParentButtons(
-                                    "editTextTaleScreen/${cardId}/${card.title}/${card.description}",
-                                    { mainViewModel.deleteTextTale(context, cardId!!) },
-                                    navController,
-                                    modifier.weight(0.25f)
-                                )
-                            } else {
-                                ChildButtons(
-                                    audioFile = null,
-                                    { navController?.navigate("readingScreen/${card.title}/${card.description}") },
-                                    context = context,
-                                    modifier.weight(0.125f)
-                                )
-                            }
+                            when (userRole) {
+                                UserRole.PARENT ->
+                                    ParentButtons(
+                                        onNavigateToEditTale = {
+                                            onNavigateToEditTextTale(
+                                                cardId!!,
+                                                card.title,
+                                                card.description
+                                            )
+                                        },
+                                        doDelete = {
+                                            textViewModel.deleteTextTale(
+                                                cardId!!
+                                            )
+                                        },
+                                        modifier = modifier.weight(0.25f)
+                                    )
 
+                                UserRole.CHILD -> {
+                                    ChildButtonsTextTale(
+                                        getTextContent = {
+                                            onNavigateToRead(card.title, card.description)
+                                        },
+                                        modifier = modifier.weight(0.125f)
+                                    )
+                                }
+                            }
                             Log.d("CardItemId", card.id.toString())
-                        }
-                    ) { navController?.navigate("readingScreen/${card.title}/${card.description}") }
+                        },
+                        doClick = { onNavigateToRead(card.title, card.description) },
+                        modifier = Modifier
+                    )
                 }
             }
         }
@@ -142,9 +196,17 @@ fun TextScreen(mainViewModel: MainViewModel, navController: NavHostController? =
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun TextPreview() {
-    val context = LocalContext.current
-    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val textViewModel: TextViewModel = viewModel()
+    val mainViewModel: MainViewModel = hiltViewModel()
     MainProjectTheme(darkTheme = true, dynamicColor = false) {
-        TextScreen(mainViewModel = mainViewModel)
+        TextScreen(
+            mainViewModel = mainViewModel,
+            textViewModel = textViewModel,
+            onNavigateToHome = {},
+            onNavigateToOptions = {},
+            onNavigateToAudio = {},
+            onNavigateToCreateTextTale = {},
+            onNavigateToEditTextTale = { _, _, _ -> },
+            onNavigateToRead = { _, _ -> })
     }
 }

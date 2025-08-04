@@ -1,4 +1,4 @@
-package com.example.mainproject.utils
+package com.example.mainproject.utils.alerts
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -6,15 +6,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 
 @Composable
-fun SaveAlert(
+fun SaveWhenDoNavigationIconAlert(
     openDialog: Boolean,
     onSave: () -> Unit,
-    onCancel: () -> Unit
+    onCancelWithoutSave: () -> Unit
 ) {
-    /* TODO только при наличии данных */
     if (openDialog) {
         AlertDialog(
-            onDismissRequest = { onCancel() }, // Закрытие при клике вне диалога
+            onDismissRequest = { onCancelWithoutSave() },
             title = {
                 Text(text = "Сохранить сказку?")
             },
@@ -33,7 +32,7 @@ fun SaveAlert(
             dismissButton = {
                 Button(
                     onClick = {
-                        onCancel()
+                        onCancelWithoutSave()
                     }
                 ) {
                     Text("Нет")

@@ -11,20 +11,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mainproject.models.SharedPreferencesManager
 import com.example.mainproject.network.ApiService
-import com.example.mainproject.ui.components.textTales.TextTale
 import com.example.mainproject.utils.ApiConfig
 import com.example.mainproject.utils.DeviceInfo
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
+import javax.inject.Inject
 
-class MainViewModel(
+enum class UserRole {
+    PARENT,
+    CHILD
+}
+
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val sharedPreferencesManager: SharedPreferencesManager,
 ) : ViewModel() {
 
@@ -33,58 +40,40 @@ class MainViewModel(
     private val _checkDeviceDataSuccess = MutableStateFlow(false)
     val checkDeviceDataSuccess: StateFlow<Boolean> = _checkDeviceDataSuccess
 
-    /* Первый запуск */
-    private var _isFirstLaunch = mutableStateOf(true)
-    val isFirstLaunch: State<Boolean> = _isFirstLaunch
+    private val _savedPassword = MutableStateFlow("123")
+    private val _enteredPassword = mutableStateOf("")
+    val savedPassword = _savedPassword.asStateFlow()
+    val enteredPassword: State<String> = _enteredPassword
 
-    /* Пароль */
-    private val _password = MutableStateFlow("123") // Установленный
-    private val _passwordValue = mutableStateOf("") // Вводимый
-    val password = _password.asStateFlow()
-    val passwordValue: State<String> = _passwordValue
+    private val _userRole = MutableStateFlow(UserRole.CHILD)
+    val userRole: StateFlow<UserRole> = _userRole
 
-    /* Родитель? */
-    private val _isParent = mutableStateOf(true)
-    val isParent: State<Boolean> = _isParent
+    private val _savedChildImage = mutableStateOf<Bitmap?>(null)
+    val savedChildImage: State<Bitmap?> = _savedChildImage
+    private val _savedParentImage = mutableStateOf<Bitmap?>(null)
+    val savedParentImage: State<Bitmap?> = _savedParentImage
 
-    /* Список текстовых сказок */
-    private val _textTalesList = MutableStateFlow<List<TextTale>>(emptyList())
-    val textTalesList: StateFlow<List<TextTale>> = _textTalesList.asStateFlow()
+    private val _tempChildUriImage = mutableStateOf<Uri?>(null)
+    val tempChildUriImage: State<Uri?> = _tempChildUriImage
+    private val _tempParentUriImage = mutableStateOf<Uri?>(null)
+    val tempParentUriImage: State<Uri?> = _tempParentUriImage
 
-    /* Настройка картинок */
-    var childImage: Bitmap? = null
-        private set
-    var parentImage: Bitmap? = null
-        private set
+    private val _showExitAccountAlert = MutableStateFlow(false)
+    val showExitAccountAlert: StateFlow<Boolean> = _showExitAccountAlert
+
+    private val _showSaveTaleAlert = MutableStateFlow(false)
+    val showSaveTaleAlert: StateFlow<Boolean> = _showSaveTaleAlert
 
     init {
-        _password.value = sharedPreferencesManager.getPassword()
-        _isFirstLaunch.value = sharedPreferencesManager.getFirstLaunch()
-//        loadAudioFiles()
+        _savedPassword.value = sharedPreferencesManager.getPassword()
     }
 
-    // Получение текстовых сказок с сервера
-    fun fetchTextTales(context: Context) {
-        viewModelScope.launch {
-            try {
-                val getDeviceId = DeviceInfo.getDeviceInfo(context)["device_id"]
-                val textFiles = apiService.getTextTales(getDeviceId!!)
-
-                if (textFiles.isSuccessful) {
-                    Log.d("fetch Text Card: ", "${textFiles.body()}")
-                    _textTalesList.value = textFiles.body() ?: emptyList()
-                }
-            } catch (e: Exception) {
-                Log.e("Error", "Ошибка получения файлов: ${e.message}")
-            }
-        }
-    }
-
-    fun checkDeviceData(context: Context, callback: (Boolean) -> Unit) {
+    fun checkDeviceData(callback: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
                 val deviceInfo = DeviceInfo.getDeviceInfo(context)["device_id"]
-                val response: Response<ApiService.DeviceResponse> = apiService.checkRegisterDevice(deviceInfo!!)
+                val response: Response<ApiService.DeviceResponse> =
+                    apiService.checkRegisterDevice(deviceInfo!!)
                 if (response.isSuccessful) {
                     val exists = response.body()?.exists ?: false
                     _checkDeviceDataSuccess.value = exists
@@ -101,7 +90,7 @@ class MainViewModel(
         }
     }
 
-    fun registerDeviceData(context: Context) {
+    fun registerDeviceData() {
         val apiService = ApiConfig.createApiService()
 
         viewModelScope.launch {
@@ -110,7 +99,7 @@ class MainViewModel(
                 val response = apiService.registerDevice(deviceInfo)
                 if (response.isSuccessful) {
                     _checkDeviceDataSuccess.value = true
-                    Log.d("register", "register done")
+                    Log.i("Register device", "Register ${deviceInfo["device_id"]} done")
                 } else {
                     Log.e("register", "Ошибка загрузки: ${response.errorBody()?.string()}")
                 }
@@ -120,117 +109,44 @@ class MainViewModel(
         }
     }
 
-    fun uploadTextData(context: Context, textTale: TextTale) {
-        val apiService = ApiConfig.createApiService()
-
-        val deviceIdBody = DeviceInfo.getDeviceInfo(context)["device_id"]!!.toRequestBody("text/plain".toMediaTypeOrNull())
-        val titleBody = textTale.title.toRequestBody("text/plain".toMediaTypeOrNull())
-        val descriptionBody = textTale.description.toRequestBody("text/plain".toMediaTypeOrNull())
-
-        viewModelScope.launch {
-            try {
-                val response = apiService.uploadTextTale(deviceIdBody, titleBody, descriptionBody)
-                if (response.isSuccessful) {
-                    fetchTextTales(context)
-                    Log.d("Upload TextTale", "Сказка успешно загружена")
-                } else {
-                    Log.e("Upload TextTale", "Ошибка загрузки: ${response.errorBody()?.string()}")
-                }
-            } catch (e: Exception) {
-                Log.e("Upload TextTale", "Ошибка: ${e.message}")
-            }
-        }
+    fun updateCurrentEnteredPasswordValue(currentEnteredPassword: String) {
+        _enteredPassword.value = currentEnteredPassword
     }
 
-    fun deleteTextTale(context: Context, taleId: Int) {
-        viewModelScope.launch {
-            try {
-                val response = apiService.deleteTextTale(taleId)
-                if (response.isSuccessful) {
-                    fetchTextTales(context)
-                    Log.d("Delete", "Файл успешно удален")
-                }
-                fetchTextTales(context)
-            } catch (e: Exception) {
-                Log.e("AudioTaleViewModel", "Ошибка удаления: ${e.message}")
-            }
-        }
-    }
-
-    fun updateTextTale(
-        taleId: Int,
-        newTitle: String,
-        newDescription: String
-    ) {
-        val apiService = ApiConfig.createApiService()
-
-        val titleBody = newTitle.toRequestBody("text/plain".toMediaTypeOrNull())
-        val descriptionBody = newDescription.toRequestBody("text/plain".toMediaTypeOrNull())
-
-        viewModelScope.launch {
-            try {
-                val response = apiService.updateTextTale(
-                    taleId,
-                    titleBody,
-                    descriptionBody
-                )
-                if (response.isSuccessful) {
-                    Log.d("Update", "TextTale успешно обновлена")
-                } else {
-                    Log.e("Update", "TextTale Ошибка обновления: ${response.errorBody()?.string()}")
-                }
-            } catch (e: Exception) {
-                Log.e("Update", "TextTale Ошибка: ${e.message}")
-            }
-        }
-    }
-
-    /* Обновление флага первого запуска */
-    fun updateFirstLaunch() {
-        _isFirstLaunch.value = false
-        viewModelScope.launch {
-            sharedPreferencesManager.disableFirstLaunch()
-        }
-    }
-
-    /* Вводимый пароль при входе */
-    fun updatePasswordValue(newPasswordValue: String) {
-        _passwordValue.value = newPasswordValue
-    }
-
-    /* Установка пароля */
-    fun updatePassword(newPassword: String) {
-        _password.value = newPassword
+    fun setNewPassword(newPassword: String) {
+        _savedPassword.value = newPassword
         viewModelScope.launch {
             sharedPreferencesManager.savePassword(newPassword)
         }
     }
 
-    /* Определение кто вошел */
-    fun updateIsParent(newBool: Boolean) {
-        _isParent.value = newBool
+    fun parentEntered() {
+        _userRole.value = UserRole.PARENT
     }
 
-    /* Выбор картинки */
-    fun loadImage(context: Context, fileName: String) {
-        val bitmap = loadImageFromInternalStorage(context, fileName)
+    fun childEntered() {
+        _userRole.value = UserRole.CHILD
+    }
+
+    fun setTempChildUriImage(uri: Uri) {
+        _tempChildUriImage.value = uri
+    }
+
+    fun setTempParentUriImage(uri: Uri) {
+        _tempParentUriImage.value = uri
+    }
+
+    fun loadImage(fileName: String) {
+        val bitmap = loadImageFromInternalStorage(fileName)
         if (fileName == "saved_child_image.jpg") {
-            childImage = bitmap
+            _savedChildImage.value = bitmap
         }
         if (fileName == "saved_parent_image.jpg") {
-            parentImage = bitmap
+            _savedParentImage.value = bitmap
         }
-
     }
 
-    /* Сохранение картинки */
-    fun saveImage(context: Context, uri: Uri, fileName: String) {
-        saveImageToInternalStorage(context, uri, fileName)
-        loadImage(context, fileName)
-    }
-
-    /* Сохранение картинки во внутреннее хранилище */
-    private fun saveImageToInternalStorage(context: Context, uri: Uri, fileName: String): String? {
+    fun saveImageToInternalStorage(uri: Uri, fileName: String): String? {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri)
             val file = File(context.filesDir, fileName)
@@ -245,8 +161,7 @@ class MainViewModel(
         }
     }
 
-    /* Загрузка картинки из внутреннего хранилища */
-    private fun loadImageFromInternalStorage(context: Context, fileName: String): Bitmap? {
+    private fun loadImageFromInternalStorage(fileName: String): Bitmap? {
         return try {
             val file = File(context.filesDir, fileName)
             if (file.exists()) {
@@ -258,5 +173,27 @@ class MainViewModel(
             e.printStackTrace()
             null
         }
+    }
+
+    fun openExitAccountAlert() {
+        _showExitAccountAlert.value = true
+    }
+
+    fun closeExitAccountAlert() {
+        _showExitAccountAlert.value = false
+    }
+
+    fun confirmExitAccountAlert(onNavigateToHome: () -> Unit) {
+        run { onNavigateToHome() }
+        _showExitAccountAlert.value = false
+    }
+
+    fun openSaveTaleAlert() {
+        _showSaveTaleAlert.value = true
+    }
+
+    fun closeSaveTaleAlert(onNavigateBack: () -> Unit) {
+        _showSaveTaleAlert.value = false
+        run { onNavigateBack() }
     }
 }

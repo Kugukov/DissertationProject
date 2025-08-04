@@ -1,7 +1,7 @@
 package com.example.mainproject.models
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -12,29 +12,94 @@ import androidx.navigation.navArgument
 import com.example.mainproject.ui.components.HomeScreen
 import com.example.mainproject.ui.components.LoadScreen
 import com.example.mainproject.ui.components.OptionScreen
-import com.example.mainproject.ui.components.audioTales.AudioScreen
-import com.example.mainproject.ui.components.audioTales.CreateAudioTaleScreen
-import com.example.mainproject.ui.components.audioTales.EditAudioTaleScreen
+import com.example.mainproject.ui.components.audioTales.AudioTaleScreen
+import com.example.mainproject.ui.components.audioTales.createAudioTale.CreateAudioTaleScreen
+import com.example.mainproject.ui.components.audioTales.createAudioTale.CreateAudioTaleViewModel
+import com.example.mainproject.ui.components.audioTales.editAudioTale.EditAudioTaleScreen
+import com.example.mainproject.ui.components.audioTales.editAudioTale.EditAudioTaleViewModel
 import com.example.mainproject.ui.components.textTales.CreateTextTaleScreen
 import com.example.mainproject.ui.components.textTales.EditTextTaleScreen
 import com.example.mainproject.ui.components.textTales.ReadingScreen
 import com.example.mainproject.ui.components.textTales.TextScreen
-import com.example.mainproject.viewmodel.AudioViewModel
+import com.example.mainproject.viewmodel.AudioTalesViewModel
 import com.example.mainproject.viewmodel.MainViewModel
+import com.example.mainproject.viewmodel.TextViewModel
 
 @Composable
 fun AppNavController(navController: NavHostController = rememberNavController()) {
 
-    val context = LocalContext.current
-    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
-    val audioViewModel: AudioViewModel = viewModel()
+    val mainViewModel: MainViewModel = hiltViewModel()
+    val audioViewModel: AudioTalesViewModel = hiltViewModel()
+    val createAudioTaleViewModel: CreateAudioTaleViewModel = hiltViewModel()
+    val editAudioTaleViewModel: EditAudioTaleViewModel = hiltViewModel()
+    val textViewModel: TextViewModel = viewModel()
+
+    val onNavigateBack = { navController.popBackStack() }
+    val onNavigateToHomeFromAccount = { navController.popBackStack("homeScreen", false) }
+    val onNavigateToHomeFromLoadScreen = { navController.navigate("homeScreen") }
+    val onNavigateToOptions = { navController.navigate("optionScreen") }
+
+    val onNavigateToText = { navController.navigate("textScreen") }
+    val onNavigateToCreateTextTale = { navController.navigate("createTextTaleScreen") }
+    val onNavigateToEditTextTale: (Int, String, String) -> Unit = { id, title, description ->
+        navController.navigate("editTextTaleScreen/$id/$title/$description")
+    }
+    val onNavigateToRead: (String, String) -> Unit = { title, description ->
+        navController.navigate("readingScreen/$title/$description")
+    }
+
+    val onNavigateToAudio = { navController.navigate("audioScreen") }
+    val onNavigateToCreateAudioTale = { navController.navigate("createAudioTaleScreen") }
+    val onNavigateToEditAudioTale: (Int, String, String, String) -> Unit =
+        { id, title, description, fileUrl ->
+            navController.navigate("editAudioTaleScreen/$id/$title/$description/$fileUrl")
+        }
 
     NavHost(navController = navController, startDestination = "loadScreen") {
-        composable("loadScreen") { LoadScreen(mainViewModel, audioViewModel, navController) }
-        composable("homeScreen") { HomeScreen(mainViewModel, navController) }
-        composable("audioScreen") { AudioScreen(mainViewModel, audioViewModel, navController) }
-        composable("textScreen") { TextScreen(mainViewModel, navController) }
-        composable("optionScreen") { OptionScreen(mainViewModel, navController) }
+        composable("loadScreen") {
+            LoadScreen(
+                mainViewModel = mainViewModel,
+                textViewModel = textViewModel,
+                audioViewModel = audioViewModel,
+                onNavigateToHome = { onNavigateToHomeFromLoadScreen() }
+            )
+        }
+        composable("homeScreen") {
+            HomeScreen(
+                mainViewModel = mainViewModel,
+                onNavigateToOptions = onNavigateToOptions,
+                onNavigateToAudio = onNavigateToAudio
+            )
+        }
+        composable("audioScreen") {
+            AudioTaleScreen(
+                mainViewModel = mainViewModel,
+                audioViewModel = audioViewModel,
+                onNavigateToHome = { onNavigateToHomeFromAccount() },
+                onNavigateToText = onNavigateToText,
+                onNavigateToOptions = onNavigateToOptions,
+                onNavigateToCreateAudioTale = onNavigateToCreateAudioTale,
+                onNavigateToEditAudioTale = onNavigateToEditAudioTale,
+            )
+        }
+        composable("textScreen") {
+            TextScreen(
+                mainViewModel = mainViewModel,
+                textViewModel = textViewModel,
+                onNavigateToHome = { onNavigateToHomeFromAccount() },
+                onNavigateToOptions = onNavigateToOptions,
+                onNavigateToAudio = onNavigateToAudio,
+                onNavigateToCreateTextTale = onNavigateToCreateTextTale,
+                onNavigateToEditTextTale = onNavigateToEditTextTale,
+                onNavigateToRead = onNavigateToRead
+            )
+        }
+        composable("optionScreen") {
+            OptionScreen(
+                mainViewModel = mainViewModel,
+                onNavigateBack = { onNavigateBack() }
+            )
+        }
         composable(
             "readingScreen/{title}/{content}",
             arguments = listOf(
@@ -44,16 +109,28 @@ fun AppNavController(navController: NavHostController = rememberNavController())
         ) { backStackEntry ->
             val title = backStackEntry.arguments?.getString("title") ?: ""
             val content = backStackEntry.arguments?.getString("content") ?: ""
-            ReadingScreen(title, content, mainViewModel, navController)
+            ReadingScreen(
+                title = title,
+                content = content,
+                onNavigateBack = { onNavigateBack() },
+            )
         }
         composable("createAudioTaleScreen") {
             CreateAudioTaleScreen(
-                mainViewModel,
-                audioViewModel,
-                navController
+                mainViewModel = mainViewModel,
+                createAudioTaleViewModel = createAudioTaleViewModel,
+                onNavigateBack = { onNavigateBack() },
+                onNavigateToOptions = onNavigateToOptions
             )
         }
-        composable("createTextTaleScreen") { CreateTextTaleScreen(mainViewModel, navController) }
+        composable("createTextTaleScreen") {
+            CreateTextTaleScreen(
+                mainViewModel = mainViewModel,
+                textViewModel = textViewModel,
+                onNavigateBack = { onNavigateBack() },
+                onNavigateToOptions = onNavigateToOptions
+            )
+        }
         composable(
             "editTextTaleScreen/{taleId}/{title}/{description}",
             arguments = listOf(
@@ -65,7 +142,15 @@ fun AppNavController(navController: NavHostController = rememberNavController())
             val taleId = backStackEntry.arguments?.getInt("taleId") ?: 0
             val title = backStackEntry.arguments?.getString("title") ?: ""
             val description = backStackEntry.arguments?.getString("description") ?: ""
-            EditTextTaleScreen(taleId, title, description, mainViewModel, navController)
+            EditTextTaleScreen(
+                taleId = taleId,
+                title = title,
+                description = description,
+                mainViewModel = mainViewModel,
+                textViewModel = textViewModel,
+                onNavigateBack = { onNavigateBack() },
+                onNavigateToOptions = onNavigateToOptions
+            )
         }
         composable(
             "editAudioTaleScreen/{audioTaleId}/{title}/{description}/{fileUrl}",
@@ -81,13 +166,14 @@ fun AppNavController(navController: NavHostController = rememberNavController())
             val description = backStackEntry.arguments?.getString("description") ?: ""
             val fileUrl = backStackEntry.arguments?.getString("fileUrl") ?: ""
             EditAudioTaleScreen(
-                audioTaleId,
-                title,
-                description,
-                fileUrl,
-                mainViewModel,
-                audioViewModel,
-                navController
+                audioTaleId = audioTaleId,
+                title = title,
+                description = description,
+                fileUrl = fileUrl,
+                mainViewModel = mainViewModel,
+                editAudioTaleViewModel = editAudioTaleViewModel,
+                onNavigateBack = { onNavigateBack() },
+                onNavigateToOptions = onNavigateToOptions
             )
         }
     }

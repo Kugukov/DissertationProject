@@ -13,12 +13,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,56 +26,50 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import com.example.mainproject.models.MyViewModelFactory
 import com.example.mainproject.ui.theme.MainProjectTheme
-import com.example.mainproject.viewmodel.AudioViewModel
+import com.example.mainproject.viewmodel.AudioTalesViewModel
 import com.example.mainproject.viewmodel.MainViewModel
+import com.example.mainproject.viewmodel.TextViewModel
 import kotlinx.coroutines.delay
 
 @Composable
-fun LoadScreen(mainViewModel: MainViewModel, audioViewModel: AudioViewModel, navController: NavHostController? = null) {
+fun LoadScreen(
+    mainViewModel: MainViewModel,
+    textViewModel: TextViewModel,
+    audioViewModel: AudioTalesViewModel,
+    onNavigateToHome: () -> Unit
+) {
     val fetchAudioSuccess by audioViewModel.fetchSuccess.collectAsState()
     val checkDeviceDataSuccess by mainViewModel.checkDeviceDataSuccess.collectAsState()
 
-    val context = LocalContext.current
-
     LaunchedEffect(Unit) {
-        // 1. Проверка регистрации
-        mainViewModel.checkDeviceData(context) { exists ->
+        mainViewModel.checkDeviceData() { exists ->
             if (!exists) {
                 Log.d("DeviceCheck", "Устройство НЕ зарегистрировано")
-                mainViewModel.registerDeviceData(context)
+                mainViewModel.registerDeviceData()
             } else {
                 Log.d("DeviceCheck", "Устройство зарегистрировано")
             }
         }
 
-        // 2. Ждём результат проверки
         while (!checkDeviceDataSuccess) {
-            delay(100) // ждём пока ViewModel обновит флаг
+            delay(100)
         }
 
-        // 3. Загружаем данные
-        audioViewModel.fetchAudioTales(context)
-        mainViewModel.fetchTextTales(context)
+        audioViewModel.fetchAudioTales()
+        textViewModel.fetchTextTales()
 
-        // 4. Ждём загрузки аудиофайлов
         while (!fetchAudioSuccess) {
             delay(100)
         }
 
-        // 5. Переход на главный экран
-        navController?.navigate("homeScreen")
-        mainViewModel.updateFirstLaunch()
+        run { onNavigateToHome() }
     }
 
     val circleSize: Dp = 25.dp
@@ -133,27 +125,16 @@ fun LoadScreen(mainViewModel: MainViewModel, audioViewModel: AudioViewModel, nav
                 }
             }
         }
-
-        if (mainViewModel.isFirstLaunch.value) {
-            Spacer(modifier = Modifier.height(25.dp))
-            Text(
-                text = "Первый вход без пароля.\n Родителю рекомендуется установить пароль в настройках!",
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center,
-                fontSize = 24.sp,
-                modifier = Modifier
-            )
-        }
     }
 }
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoadPreview() {
-    val context = LocalContext.current
-    val audioViewModel: AudioViewModel = viewModel()
-    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val audioViewModel: AudioTalesViewModel = hiltViewModel()
+    val textViewModel: TextViewModel = viewModel()
+    val mainViewModel: MainViewModel = hiltViewModel()
     MainProjectTheme(darkTheme = true, dynamicColor = false) {
-        LoadScreen(mainViewModel, audioViewModel)
+        LoadScreen(mainViewModel, textViewModel, audioViewModel) {}
     }
 }

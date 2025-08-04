@@ -1,6 +1,5 @@
 package com.example.mainproject.ui.components
 
-import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -21,14 +20,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,46 +46,57 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.mainproject.R
-import com.example.mainproject.models.MyViewModelFactory
 import com.example.mainproject.ui.theme.MainProjectTheme
-import com.example.mainproject.utils.ExitAlert
 import com.example.mainproject.viewmodel.MainViewModel
 
 @Composable
-fun HomeScreen(mainViewModel: MainViewModel, navController: NavHostController? = null) {
+fun HomeScreen(
+    mainViewModel: MainViewModel,
+    onNavigateToOptions: () -> Unit,
+    onNavigateToAudio: () -> Unit
+) {
 
     var isPasswordEnable by remember { mutableStateOf(true) }
     val context = LocalContext.current
 
-    var childImage by remember { mutableStateOf<Bitmap?>(null) }
-    var parentImage by remember { mutableStateOf<Bitmap?>(null) }
+    val password by mainViewModel.savedPassword.collectAsState()
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    val childImage by mainViewModel.savedChildImage
+    val parentImage by mainViewModel.savedParentImage
 
     LaunchedEffect(Unit) {
-        mainViewModel.loadImage(context, "saved_child_image.jpg")
-        mainViewModel.loadImage(context, "saved_parent_image.jpg")
-        childImage = mainViewModel.childImage
-        parentImage = mainViewModel.parentImage
+        mainViewModel.loadImage("saved_child_image.jpg")
+        mainViewModel.loadImage("saved_parent_image.jpg")
+
+        if (isPasswordEnable && password == "") {
+            showPasswordDialog = true
+        }
     }
 
-    var showExitDialog by remember { mutableStateOf(false) }
-    if (showExitDialog)
-        ExitAlert(
-            text = "Вы действительно хотите выйти из приложения?",
-            onExit = {
-                showExitDialog = false
-                (context as? ComponentActivity)?.finish()
+    if (showPasswordDialog)
+        AlertDialog(
+            onDismissRequest = { showPasswordDialog = false },
+            title = { Text("Установите пароль") },
+            text = { Text("Вы ещё не установили родительский пароль!") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onNavigateToOptions()
+                    showPasswordDialog = false
+                }) {
+                    Text("Установить")
+                }
             },
-            onCancelAlert = {
-                showExitDialog = false
+            dismissButton = {
+                TextButton(onClick = { showPasswordDialog = false }) {
+                    Text("Позже")
+                }
             }
         )
 
     BackHandler {
-        showExitDialog = true
+        (context as? ComponentActivity)?.finish()
     }
 
     Column(
@@ -102,7 +115,6 @@ fun HomeScreen(mainViewModel: MainViewModel, navController: NavHostController? =
             IconButton(
                 onClick = {
                     isPasswordEnable = false
-                    mainViewModel.updateIsParent(false)
                 },
                 modifier = Modifier
                     .clip(shape = CircleShape)
@@ -135,7 +147,7 @@ fun HomeScreen(mainViewModel: MainViewModel, navController: NavHostController? =
             }
 
             Text(
-                text = "Children",
+                text = "Ребенок",
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
@@ -144,7 +156,6 @@ fun HomeScreen(mainViewModel: MainViewModel, navController: NavHostController? =
 
             IconButton(
                 onClick = {
-                    mainViewModel.updateIsParent(true)
                     isPasswordEnable = true
                 },
                 modifier = Modifier
@@ -177,7 +188,7 @@ fun HomeScreen(mainViewModel: MainViewModel, navController: NavHostController? =
             }
 
             Text(
-                text = "Parent",
+                text = "Родитель",
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
@@ -198,10 +209,10 @@ fun HomeScreen(mainViewModel: MainViewModel, navController: NavHostController? =
                 exit = fadeOut() + slideOutVertically(),
             ) {
                 OutlinedTextField(
-                    value = mainViewModel.passwordValue.value,
-                    label = { Text("Password", color = MaterialTheme.colorScheme.onBackground) },
+                    value = mainViewModel.enteredPassword.value,
+                    label = { Text("Пароль", color = MaterialTheme.colorScheme.onBackground) },
                     onValueChange = { newPassword ->
-                        mainViewModel.updatePasswordValue(newPassword)
+                        mainViewModel.updateCurrentEnteredPasswordValue(newPassword)
                     },
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -226,13 +237,15 @@ fun HomeScreen(mainViewModel: MainViewModel, navController: NavHostController? =
             Button(
                 onClick = {
                     if (isPasswordEnable) {
-                        if (mainViewModel.passwordValue.value == mainViewModel.password.value) {
-                            navController?.navigate("audioScreen")
+                        if (mainViewModel.enteredPassword.value == password) {
+                            mainViewModel.parentEntered()
+                            onNavigateToAudio()
                         } else {
-                            Toast.makeText(context, "False password", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Неправильный пароль", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        navController?.navigate("audioScreen")
+                        mainViewModel.childEntered()
+                        onNavigateToAudio()
                     }
 
                 },
@@ -254,10 +267,11 @@ fun HomeScreen(mainViewModel: MainViewModel, navController: NavHostController? =
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun GreetingPreview() {
-    val context = LocalContext.current
-    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
-    val navController = rememberNavController()
+    val mainViewModel: MainViewModel = hiltViewModel()
     MainProjectTheme(darkTheme = false, dynamicColor = false) {
-        HomeScreen(mainViewModel = mainViewModel, navController = navController)
+        HomeScreen(
+            mainViewModel = mainViewModel,
+            {},
+            {})
     }
 }

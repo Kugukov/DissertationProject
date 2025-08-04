@@ -1,4 +1,4 @@
-package com.example.mainproject.utils
+package com.example.mainproject.utils.alerts
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,23 +12,19 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.mainproject.viewmodel.AudioViewModel
 
 @Composable
 fun DangerTaleCheckAlert(
-    audioViewModel: AudioViewModel,
     openDialog: Boolean,
-    onCloseWithSave: () -> Unit,
-    onCloseWithoutSave: () -> Unit,
+    isDangerous: Boolean?,
+    dangerousWords: List<String>,
+    deleteCurrentAudioTale: () -> Unit,
+    resetDangerStatus: () -> Unit,
+    onConfirm: () -> Unit
 ) {
-    val isDangerous by audioViewModel.isDangerous.observeAsState()
-    val dangerousWords by audioViewModel.dangerousWords.observeAsState()
-
     if (openDialog) {
         AlertDialog(
             onDismissRequest = { },
@@ -44,20 +40,22 @@ fun DangerTaleCheckAlert(
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (isDangerous == null) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(top = 16.dp)
-                                .fillMaxSize(0.5f)
-                        )
-                        Text(
-                            text = "Проверка",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    } else {
-                        if (isDangerous == true) {
+                    when (isDangerous) {
+                        null -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .padding(top = 16.dp)
+                                    .fillMaxSize(0.5f)
+                            )
                             Text(
-                                text = "Сказка не безопасна!",
+                                text = "Проверка",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+
+                        true -> {
+                            Text(
+                                text = "Сказка не безопасна и будет удалена!",
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
@@ -65,10 +63,12 @@ fun DangerTaleCheckAlert(
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
-                                text = "$dangerousWords",
+                                text = dangerousWords.joinToString(", "),
                                 style = MaterialTheme.typography.bodyLarge
                             )
-                        } else {
+                        }
+
+                        false -> {
                             Text(
                                 text = "Сказка безопасна!",
                                 style = MaterialTheme.typography.bodyLarge
@@ -78,18 +78,17 @@ fun DangerTaleCheckAlert(
                 }
             },
             confirmButton = {
-                if (isDangerous != null) {
-                    val onClose: () -> Unit = if (isDangerous == true) {
-                        onCloseWithoutSave
-                    } else {
-                        onCloseWithSave
-                    }
-                    Button(onClick = {
-                        onClose()
-                        audioViewModel.updateDangerStatus(null, null)
-                    }) {
-                        Text("Ок")
-                    }
+                Button(
+                    onClick = {
+                        if (isDangerous == true) {
+                            deleteCurrentAudioTale()
+                        }
+                        onConfirm()
+                        resetDangerStatus()
+                    },
+                    enabled = isDangerous != null
+                ) {
+                    Text("Ок")
                 }
             },
             modifier = Modifier

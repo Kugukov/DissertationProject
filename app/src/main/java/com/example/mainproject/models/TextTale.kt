@@ -1,4 +1,4 @@
-package com.example.mainproject.ui.components.textTales
+package com.example.mainproject.models
 
 data class TextTale(
     val id: Int?,

@@ -1,10 +1,8 @@
 package com.example.mainproject.ui.components
 
-import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,14 +13,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,77 +36,81 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.example.mainproject.R
-import com.example.mainproject.models.MyViewModelFactory
-import com.example.mainproject.ui.components.screensParts.TopAppBar
 import com.example.mainproject.ui.theme.MainProjectTheme
 import com.example.mainproject.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OptionScreen(mainViewModel: MainViewModel, navController: NavHostController? = null) {
+fun OptionScreen(
+    mainViewModel: MainViewModel,
+    onNavigateBack: () -> Unit
+) {
     /* TODO возможность работы с запрещенными словами */
 
     var passwordCurrentInput by remember { mutableStateOf("") }
     var currentSelection by remember { mutableStateOf("first") }
 
-    val context = LocalContext.current
-
-    var childImageUri by remember { mutableStateOf<Uri?>(null) }
-    var parentImageUri by remember { mutableStateOf<Uri?>(null) }
-    var childImage by remember { mutableStateOf<Bitmap?>(null) }
-    var parentImage by remember { mutableStateOf<Bitmap?>(null) }
+    val tempChildUriImage by mainViewModel.tempChildUriImage
+    val tempParentUriImage by mainViewModel.tempParentUriImage
 
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-
         when (currentSelection) {
             "first" -> {
                 uri?.let {
-                    childImageUri = it
+                    mainViewModel.setTempChildUriImage(it)
                 }
             }
 
             "second" -> {
                 uri?.let {
-                    parentImageUri = it
+                    mainViewModel.setTempParentUriImage(it)
                 }
             }
         }
-
     }
 
     LaunchedEffect(Unit) {
-        mainViewModel.loadImage(context, "saved_child_image.jpg")
-        mainViewModel.loadImage(context, "saved_parent_image.jpg")
-        childImage = mainViewModel.childImage
-        parentImage = mainViewModel.parentImage
+        mainViewModel.loadImage("saved_child_image.jpg")
+        mainViewModel.loadImage("saved_parent_image.jpg")
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                titleText = "Настройки",
-                doNavigationIcon = {
-                    navController?.popBackStack()
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Настройки",
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 },
-                isOptionEnable = false,
-                false,
-                null,
-                navController
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                navigationIcon = {
+                    IconButton(onClick = {
+                        onNavigateBack()
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Назад",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+
+                },
             )
         },
         content = { padding ->
@@ -161,31 +169,16 @@ fun OptionScreen(mainViewModel: MainViewModel, navController: NavHostController?
                                 .aspectRatio(1f)
                                 .fillMaxSize()
                         ) {
-                            if (childImage == null) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.boy),
+                            tempChildUriImage?.let {
+                                AsyncImage(
+                                    model = it,
                                     contentDescription = "Выбранное изображение",
                                     modifier = Modifier.fillMaxSize()
                                 )
-                            } else if (childImageUri != null) {
-                                childImageUri?.let {
-                                    Image(
-                                        painter = rememberAsyncImagePainter(childImageUri),
-                                        contentDescription = "Выбранное изображение",
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                            } else {
-                                childImage?.let {
-                                    Image(
-                                        bitmap = it.asImageBitmap(),
-                                        contentDescription = "Выбранное изображение",
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                            }
-
-
+                            } ?: ProfileImageDisplay(
+                                savedImage = mainViewModel.savedChildImage.value,
+                                defaultImageRes = R.drawable.boy
+                            )
                         }
 
                         Spacer(modifier = Modifier.weight(0.02f))
@@ -202,31 +195,16 @@ fun OptionScreen(mainViewModel: MainViewModel, navController: NavHostController?
                                 .weight(0.49f)
                                 .aspectRatio(1f)
                         ) {
-
-                            if (parentImage == null) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.parent),
+                            tempParentUriImage?.let {
+                                AsyncImage(
+                                    model = it,
                                     contentDescription = "Выбранное изображение",
                                     modifier = Modifier.fillMaxSize()
                                 )
-                            } else if (parentImageUri != null) {
-                                parentImageUri?.let {
-                                    Image(
-                                        painter = rememberAsyncImagePainter(parentImageUri),
-                                        contentDescription = "Выбранное изображение",
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                            } else {
-                                parentImage?.let {
-                                    Image(
-                                        bitmap = it.asImageBitmap(),
-                                        contentDescription = "Выбранное изображение",
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                            }
-
+                            } ?: ProfileImageDisplay(
+                                savedImage = mainViewModel.savedParentImage.value,
+                                defaultImageRes = R.drawable.parent
+                            )
                         }
                     }
 
@@ -240,39 +218,48 @@ fun OptionScreen(mainViewModel: MainViewModel, navController: NavHostController?
                             modifier = Modifier.fillMaxWidth(0.6f),
                             onClick = {
                                 if (passwordCurrentInput != "")
-                                    mainViewModel.updatePassword(passwordCurrentInput)
-                                if (childImageUri != null) {
-                                    childImageUri?.let {
-                                        mainViewModel.saveImage(context, it, "saved_child_image.jpg")
-                                        childImage = mainViewModel.childImage
-                                    }
+                                    mainViewModel.setNewPassword(passwordCurrentInput)
+                                if (tempChildUriImage != null) {
+                                    setAndLoadNewImage(
+                                        tempChildUriImage,
+                                        "saved_child_image.jpg",
+                                        mainViewModel
+                                    )
                                 }
-                                if (parentImageUri != null) {
-                                    parentImageUri?.let {
-                                        mainViewModel.saveImage(context, it, "saved_parent_image.jpg")
-                                        parentImage = mainViewModel.parentImage
-                                    }
+                                if (tempParentUriImage != null) {
+                                    setAndLoadNewImage(
+                                        tempParentUriImage,
+                                        "saved_parent_image.jpg",
+                                        mainViewModel
+                                    )
                                 }
-
-
-                                navController?.popBackStack()
+                                onNavigateBack()
                             }
                         ) { Text(text = "Принять") }
                     }
-
                 }
             }
         }
     )
 }
 
+private fun setAndLoadNewImage(
+    uri: Uri?,
+    fileName: String,
+    mainViewModel: MainViewModel
+) {
+    uri?.let {
+        mainViewModel.saveImageToInternalStorage(it, fileName)
+        mainViewModel.loadImage(fileName)
+    }
+}
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun OptionPreview() {
-    val context = LocalContext.current
-    val mainViewModel: MainViewModel = viewModel(factory = MyViewModelFactory(context))
+    val mainViewModel: MainViewModel = hiltViewModel()
 
     MainProjectTheme(darkTheme = true, dynamicColor = false) {
-        OptionScreen(mainViewModel = mainViewModel)
+        OptionScreen(mainViewModel = mainViewModel) {}
     }
 }

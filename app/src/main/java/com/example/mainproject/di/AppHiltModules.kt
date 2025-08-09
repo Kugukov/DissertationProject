@@ -1,15 +1,15 @@
 package com.example.mainproject.di
 
-import com.example.mainproject.domain.AudioFileStorage
-import com.example.mainproject.domain.AudioFileStorageImpl
+import com.example.mainproject.data.storage.AudioFileStorage
+import com.example.mainproject.data.storage.AudioFileStorageImpl
 import com.example.mainproject.domain.DeviceInfoProvider
-import com.example.mainproject.domain.DeviceInfoProviderImpl
-import com.example.mainproject.data.AudioTaleRepository
-import com.example.mainproject.data.AudioTaleRepositoryImpl
-import com.example.mainproject.network.ApiService
-import com.example.mainproject.utils.ApiConfig
-import com.example.mainproject.utils.workWithAudio.AudioPlaybackController
-import com.example.mainproject.utils.workWithAudio.AudioPlayer
+import com.example.mainproject.data.DeviceInfoProviderImpl
+import com.example.mainproject.domain.repository.AudioTaleRepository
+import com.example.mainproject.data.repository.AudioTaleRepositoryImpl
+import com.example.mainproject.data.network.ApiService
+import com.example.mainproject.core.config.ApiConfig
+import com.example.mainproject.core.utils.workWithAudio.AudioPlaybackController
+import com.example.mainproject.core.utils.workWithAudio.AudioPlayer
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

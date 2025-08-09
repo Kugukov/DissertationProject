@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt)
-//    alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.kapt)
 }
 
@@ -82,7 +81,7 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
-    implementation (libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.javapoet)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)

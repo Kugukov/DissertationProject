@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mainproject"
+    namespace = "com.kugukov.myfairytale"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.mainproject"
+        applicationId = "com.kugukov.myfairytale"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
